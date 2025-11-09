@@ -1,7 +1,4 @@
-// file: server/index.js
-
 // ----- 1. LOAD BIẾN MÔI TRƯỜNG -----
-// Phải đặt dòng này ở ĐẦU TIÊN
 // Nó sẽ đọc file .env và đưa DATABASE_URL vào 'process.env'
 require('dotenv').config();
 
@@ -10,6 +7,9 @@ const express = require('express');
 const cors = require('cors');
 // Import file db.js (sau khi đã load .env)
 const db = require('./db'); 
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -32,6 +32,9 @@ app.get('/api/test', async (req, res) => {
     res.status(500).json({ error: 'Không thể kết nối đến database.' });
   }
 });
+
+// Bất kỳ request nào bắt đầu bằng /api/auth sẽ được gửi đến authRoutes
+app.use('/api/auth', authRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----
 app.listen(PORT, () => {

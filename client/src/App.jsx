@@ -1,7 +1,8 @@
-// file: client/src/App.jsx
 import { Routes, Route } from 'react-router-dom';
-import RegisterPage from './pages/RegisterPage'; // <-- Import
-import LoginPage from './pages/LoginPage'; // <-- Import
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage'; 
+import HomePage from './pages/HomePage';
+import CourseDetailPage from './pages/CourseDetailPage';
 
 function App() {
   return (
@@ -10,8 +11,8 @@ function App() {
       <Routes>
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        {/* Chúng ta sẽ thêm trang chủ (Homepage) sau */}
-        {/* <Route path="/" element={<HomePage />} /> */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/course/:id" element={<CourseDetailPage />} />
       </Routes>
     </div>
   );

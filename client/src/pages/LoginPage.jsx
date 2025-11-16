@@ -39,9 +39,9 @@ function LoginPage() {
       // sessionStorage.setItem('user', JSON.stringify(response.data.user));
 
       // 3. Chuyển hướng đến trang chủ (Homepage)
-      // (Chúng ta sẽ tạo trang này ở Cột mốc 3)
+      sessionStorage.setItem('token', response.data.token);
       alert('Đăng nhập thành công!');
-      // navigate('/'); // Sẽ mở lại sau khi có Homepage
+      navigate('/');
 
     } catch (err) {
       // 4. Nếu lỗi (sai email, password)

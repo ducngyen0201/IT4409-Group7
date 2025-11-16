@@ -1,24 +1,25 @@
-// ----- 1. LOAD BIẾN MÔI TRƯỜNG -----
-// Nó sẽ đọc file .env và đưa DATABASE_URL vào 'process.env'
 require('dotenv').config();
 
-// ----- 2. IMPORT CÁC THƯ VIỆN -----
+// ----- 1. IMPORT CÁC THƯ VIỆN -----
 const express = require('express');
 const cors = require('cors');
-// Import file db.js (sau khi đã load .env)
 const db = require('./db'); 
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const courseRoutes = require('./routes/courseRoutes');
+const materialRoutes = require('./routes/materialRoutes');
+const lectureRoutes = require('./routes/lectureRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ----- 3. SỬ DỤNG MIDDLEWARE -----
+// ----- 2. SỬ DỤNG MIDDLEWARE -----
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
-// ----- 4. TẠO ROUTE ĐỂ KIỂM TRA (TEST) -----
+// ----- 3. TẠO ROUTE ĐỂ KIỂM TRA (TEST) -----
 // API endpoint này dùng để kiểm tra xem kết nối có thành công không
 app.get('/api/test', async (req, res) => {
   try {
@@ -33,10 +34,13 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-// Bất kỳ request nào bắt đầu bằng /api/auth sẽ được gửi đến authRoutes
+// ----- 4. SỬ DỤNG CÁC ROUTE -----
 app.use('/api/auth', authRoutes);
+app.use('/api/courses', courseRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/lectures', lectureRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----
 app.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy trên cổng ${PORT}`);
+  console.log(`Server đang chạy trên cổng ${PORT}`);
 });

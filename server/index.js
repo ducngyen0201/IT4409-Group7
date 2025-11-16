@@ -8,7 +8,6 @@ const db = require('./db');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
-const materialRoutes = require('./routes/materialRoutes');
 const lectureRoutes = require('./routes/lectureRoutes');
 
 const app = express();
@@ -37,7 +36,6 @@ app.get('/api/test', async (req, res) => {
 // ----- 4. SỬ DỤNG CÁC ROUTE -----
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api/materials', materialRoutes);
 app.use('/api/lectures', lectureRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----

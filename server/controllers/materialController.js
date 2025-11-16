@@ -2,8 +2,9 @@ const db = require('../db');
 
 exports.uploadMaterial = async (req, res) => {
   try {
-    // 1. Lấy thông tin từ client (form-data)
-    const { lecture_id, title, type } = req.body;
+    // 1. Lấy 'id' từ URL và đổi tên thành 'lecture_id'
+    const { id: lecture_id } = req.params; 
+    const { title, type } = req.body;
     
     // 2. Kiểm tra file (từ multer)
     if (!req.file) {

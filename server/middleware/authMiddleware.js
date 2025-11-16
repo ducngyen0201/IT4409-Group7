@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-// 1. "Bảo vệ" Cấp 1: Kiểm tra xem người dùng đã đăng nhập chưa (có token hợp lệ không)
+// 1. Bảo vệ Cấp 1: Kiểm tra xem người dùng đã đăng nhập chưa (có token hợp lệ không)
 exports.protect = async (req, res, next) => {
   let token;
 
@@ -32,12 +32,21 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// 2. "Bảo vệ" Cấp 2: Kiểm tra xem người dùng có phải là Giáo viên không
+// 2. Bảo vệ Cấp 2: Kiểm tra xem người dùng có phải là Giáo viên không
 exports.isTeacher = (req, res, next) => {
   // Cho phép cả 'TEACHER' và 'ADMIN' tạo khóa học
   if (req.user && (req.user.role === 'TEACHER' || req.user.role === 'ADMIN')) {
     next(); // Là giáo viên hoặc admin, cho phép đi tiếp
   } else {
     res.status(403).json({ error: 'Bạn không có quyền (Không phải Giáo viên).' });
+  }
+};
+
+// 3. Bảo vệ Cấp 2: Kiểm tra xem người dùng có phải là Học sinh không
+exports.isStudent = (req, res, next) => {
+  if (req.user && req.user.role === 'STUDENT') {
+    next(); // Là học sinh, cho phép đi tiếp
+  } else {
+    res.status(403).json({ error: 'Bạn không có quyền (Không phải Học sinh).' });
   }
 };

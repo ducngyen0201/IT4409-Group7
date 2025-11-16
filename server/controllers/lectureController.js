@@ -3,7 +3,8 @@ const db = require('../db');
 exports.createLecture = async (req, res) => {
   try {
     // 1. Lấy thông tin từ client
-    const { course_id, title, content, position } = req.body;
+    const { id: course_id } = req.params; // Lấy 'id' từ URL và đổi tên thành 'course_id'
+    const { title, content, position } = req.body;
 
     // 2. Lấy ID của giáo viên (từ token)
     const teacherId = req.user.userId;

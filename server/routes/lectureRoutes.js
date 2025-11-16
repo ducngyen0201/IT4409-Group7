@@ -1,13 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
-// Import 2 "bảo vệ"
 const { protect, isTeacher } = require('../middleware/authMiddleware');
+const upload = require('../utils/multerConfig'); // Import config multer
+const materialController = require('../controllers/materialController'); // Import controller
 
-// Import controller (sẽ tạo ở bước 2)
-const lectureController = require('../controllers/lectureController');
+router.post(
+  '/:id/materials', // ':id' ở đây chính là lecture_id
+  protect,
+  isTeacher,
+  upload.single('material'), // Middleware của Multer
+  materialController.uploadMaterial // Controller xử lý
+);
 
-// API để tạo một bài giảng mới
-router.post('/', protect, isTeacher, lectureController.createLecture);
+// (Chúng ta sẽ sớm thêm các route khác như GET /:id, PATCH /:id vào đây)
 
 module.exports = router;

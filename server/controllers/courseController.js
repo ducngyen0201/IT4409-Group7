@@ -125,3 +125,178 @@ exports.getCourseDetails = async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
   }
 };
+
+exports.updateCourse = async (req, res) => {
+  try {
+    // 1. Lấy ID khóa học từ URL và ID giáo viên từ token
+    const { id: courseId } = req.params;
+    const teacherId = req.user.userId;
+
+    // 2. Lấy dữ liệu mới từ body
+    const { title, description, code, is_enrollment_open } = req.body;
+
+    // 3. KIỂM TRA QUYỀN SỞ HỮU
+    const checkOwnership = await db.query(
+      "SELECT * FROM course_instructors WHERE course_id = $1 AND user_id = $2 AND role = 'OWNER'",
+      [courseId, teacherId]
+    );
+
+    if (checkOwnership.rows.length === 0) {
+      return res.status(403).json({ 
+        error: 'Bạn không có quyền (Không phải chủ sở hữu) để sửa khóa học này.' 
+      });
+    }
+
+    // 4. Nếu có quyền -> Cập nhật khóa học
+    const fields = [];
+    const values = [];
+    let queryIndex = 1;
+
+    if (title) {
+      fields.push(`title = $${queryIndex++}`);
+      values.push(title);
+    }
+    if (description) {
+      fields.push(`description = $${queryIndex++}`);
+      values.push(description);
+    }
+    if (code) {
+      fields.push(`code = $${queryIndex++}`);
+      values.push(code);
+    }
+    if (is_enrollment_open !== undefined) { // Cho phép set true/false
+      fields.push(`is_enrollment_open = $${queryIndex++}`);
+      values.push(is_enrollment_open);
+    }
+
+    // Thêm cột 'updated_at'
+    fields.push(`updated_at = $${queryIndex++}`);
+    values.push(new Date());
+
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'Không có trường nào để cập nhật.' });
+    }
+
+    // Thêm ID khóa học vào cuối mảng values
+    values.push(courseId);
+
+    // 5. Xây dựng và thực thi câu lệnh UPDATE
+    const updateQuery = `
+      UPDATE courses
+      SET ${fields.join(', ')}
+      WHERE id = $${queryIndex}
+      RETURNING *
+    `;
+
+    const updatedCourse = await db.query(updateQuery, values);
+
+    res.status(200).json(updatedCourse.rows[0]);
+
+  } catch (err) {
+    console.error("Lỗi khi cập nhật khóa học:", err.message);
+    // Lỗi nếu 'code' bị trùng
+    if (err.code === '23505') {
+       return res.status(400).json({ error: 'Mã khóa học này đã tồn tại.' });
+    }
+    res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
+  }
+};
+
+exports.requestCourseReview = async (req, res) => {
+  try {
+    // 1. Lấy ID khóa học từ URL và ID giáo viên từ token
+    const { id: courseId } = req.params;
+    const teacherId = req.user.userId;
+
+    // 2. KIỂM TRA QUYỀN SỞ HỮU (Giáo viên phải là giảng viên của khóa này)
+    const checkOwnership = await db.query(
+      "SELECT * FROM course_instructors WHERE course_id = $1 AND user_id = $2",
+      [courseId, teacherId]
+    );
+
+    if (checkOwnership.rows.length === 0) {
+      return res.status(403).json({ 
+        error: 'Bạn không có quyền (Không phải giảng viên) với khóa học này.' 
+      });
+    }
+
+    // 3. Lấy khóa học để kiểm tra trạng thái hiện tại
+    const courseQuery = await db.query(
+      "SELECT status FROM courses WHERE id = $1", 
+      [courseId]
+    );
+    const currentStatus = courseQuery.rows[0].status;
+
+    // 4. Chỉ cho phép gửi duyệt nếu đang là 'DRAFT'
+    if (currentStatus !== 'DRAFT') {
+      return res.status(400).json({ 
+        error: `Chỉ có thể yêu cầu duyệt khi khóa học ở trạng thái 'DRAFT'. (Hiện tại là: ${currentStatus})` 
+      });
+    }
+
+    // 5. Nếu có quyền -> Cập nhật trạng thái
+    const updatedCourse = await db.query(
+      `UPDATE courses
+       SET status = 'PENDING_REVIEW', requested_review_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [courseId]
+    );
+
+    res.status(200).json(updatedCourse.rows[0]);
+
+  } catch (err) {
+    console.error("Lỗi khi gửi yêu cầu duyệt:", err.message);
+    res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
+  }
+};
+
+exports.requestEnrollment = async (req, res) => {
+  try {
+    // 1. Lấy ID khóa học từ URL và ID học sinh từ token
+    const { id: courseId } = req.params;
+    const studentId = req.user.userId;
+
+    // 2. Kiểm tra xem khóa học có tồn tại VÀ có mở đăng ký không
+    const courseQuery = await db.query(
+      "SELECT is_enrollment_open, status FROM courses WHERE id = $1", 
+      [courseId]
+    );
+
+    if (courseQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khóa học.' });
+    }
+
+    const course = courseQuery.rows[0];
+    // Chỉ cho đăng ký khi khóa học đã được duyệt (APPROVED) và mở (is_enrollment_open)
+    if (course.status !== 'APPROVED' || !course.is_enrollment_open) {
+      return res.status(400).json({ 
+        error: 'Khóa học này đã đóng hoặc chưa được duyệt.' 
+      });
+    }
+
+    // 3. Kiểm tra xem học sinh đã đăng ký (hoặc gửi yêu cầu) chưa
+    const checkExisting = await db.query(
+      "SELECT * FROM enrollments WHERE course_id = $1 AND student_id = $2",
+      [courseId, studentId]
+    );
+
+    if (checkExisting.rows.length > 0) {
+        return res.status(400).json({ error: 'Bạn đã đăng ký khóa học này rồi.' });
+    }
+
+    // 4. Nếu mọi thứ OK -> Thêm yêu cầu vào bảng 'enrollments'
+    const newEnrollment = await db.query(
+      `INSERT INTO enrollments (course_id, student_id, status) 
+       VALUES ($1, $2, 'PENDING') 
+       RETURNING *`,
+      [courseId, studentId]
+    );
+
+    res.status(201).json(newEnrollment.rows[0]);
+
+  } catch (err) {
+    console.error("Lỗi khi đăng ký khóa học:", err.message);
+    res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
+  }
+};

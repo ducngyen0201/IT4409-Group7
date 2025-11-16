@@ -4,7 +4,13 @@ const router = express.Router({ mergeParams: true });
 const { protect, isTeacher } = require('../middleware/authMiddleware');
 const enrollmentController = require('../controllers/enrollmentController');
 
-// --- ROUTE 1: DUYỆT ---
+router.get(
+  '/',
+  protect,
+  isTeacher,
+  enrollmentController.getEnrollmentsForCourse
+);
+
 router.post(
   '/:enrollmentId/approve',
   protect,
@@ -12,12 +18,18 @@ router.post(
   enrollmentController.approveEnrollment
 );
 
-// --- ROUTE 2: TỪ CHỐI ---
 router.post(
   '/:enrollmentId/reject',
   protect,
   isTeacher,
   enrollmentController.rejectEnrollment
 );
+router.post(
+  '/add',
+  protect,
+  isTeacher,
+  enrollmentController.addStudentToCourse
+);
+
 
 module.exports = router;

@@ -9,6 +9,7 @@ const db = require('./db');
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const lectureRoutes = require('./routes/lectureRoutes');
+const meRoutes = require('./routes/meRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,6 +38,7 @@ app.get('/api/test', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lectures', lectureRoutes);
+app.use('/api/me', meRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----
 app.listen(PORT, () => {

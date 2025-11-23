@@ -50,3 +50,11 @@ exports.isStudent = (req, res, next) => {
     res.status(403).json({ error: 'Bạn không có quyền (Không phải Học sinh).' });
   }
 };
+
+exports.isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'ADMIN') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Quyền truy cập bị từ chối. Yêu cầu quyền Admin.' });
+  }
+};

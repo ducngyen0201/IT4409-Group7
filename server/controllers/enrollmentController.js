@@ -1,5 +1,7 @@
 const db = require('../db');
 
+const { createNotification } = require('./notificationController');
+
 exports.approveEnrollment = async (req, res) => {
   try {
     const { id: courseId, enrollmentId } = req.params;
@@ -32,6 +34,17 @@ exports.approveEnrollment = async (req, res) => {
        WHERE id = $2
        RETURNING *`,
       [teacherId, enrollmentId]
+    );
+
+    const enrollmentData = updatedEnrollment.rows[0];
+    
+    await createNotification(
+      enrollmentData.student_id,
+      'ENROLLMENT_APPROVED',
+      {
+        course_id: courseId,
+        message: 'Yêu cầu đăng ký khóa học của bạn đã được chấp nhận!'
+      }
     );
 
     res.status(200).json(updatedEnrollment.rows[0]);

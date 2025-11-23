@@ -1,4 +1,6 @@
 const db = require('../db');
+const fs = require('fs');
+const path = require('path');
 
 exports.uploadMaterial = async (req, res) => {
   try {
@@ -40,5 +42,56 @@ exports.uploadMaterial = async (req, res) => {
     }
     
     res.status(500).json({ error: "Lỗi máy chủ nội bộ", details: err.message });
+  }
+};
+
+exports.deleteMaterial = async (req, res) => {
+  try {
+    const { id: materialId } = req.params;
+    const userId = req.user.userId;
+
+    // 1. KIỂM TRA QUYỀN SỞ HỮU VÀ LẤY THÔNG TIN FILE
+    const checkOwner = await db.query(
+      `SELECT m.id, m.storage_key 
+       FROM materials m
+       JOIN lectures l ON m.lecture_id = l.id
+       JOIN course_instructors ci ON l.course_id = ci.course_id
+       WHERE m.id = $1 AND ci.user_id = $2`,
+      [materialId, userId]
+    );
+
+    if (checkOwner.rows.length === 0) {
+      return res.status(403).json({ error: 'Bạn không có quyền xóa tài liệu này hoặc tài liệu không tồn tại.' });
+    }
+
+    const material = checkOwner.rows[0];
+    const filePath = material.storage_key;
+
+    // 2. XÓA FILE VẬT LÝ (LOCAL STORAGE)
+    // Kiểm tra xem filePath có tồn tại trong DB không
+    if (filePath) {
+      const absolutePath = path.join(process.cwd(), filePath);
+
+      // Kiểm tra file có tồn tại trên ổ cứng không trước khi xóa
+      if (fs.existsSync(absolutePath)) {
+        try {
+          fs.unlinkSync(absolutePath);
+          console.log(`Đã xóa file: ${absolutePath}`);
+        } catch (fileErr) {
+          console.error("Lỗi khi xóa file vật lý:", fileErr.message);
+        }
+      } else {
+        console.warn("File không tồn tại trên ổ cứng:", absolutePath);
+      }
+    }
+
+    // 3. XÓA TRONG DATABASE
+    await db.query("DELETE FROM materials WHERE id = $1", [materialId]);
+
+    res.status(200).json({ message: 'Đã xóa tài liệu và file thành công.' });
+
+  } catch (err) {
+    console.error("Lỗi xóa tài liệu:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
   }
 };

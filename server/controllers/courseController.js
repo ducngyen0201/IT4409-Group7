@@ -300,3 +300,62 @@ exports.requestEnrollment = async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
   }
 };
+
+exports.approveCourse = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    const adminId = req.user.userId;
+
+    // Cập nhật status thành APPROVED, ghi nhận người duyệt và thời gian
+    const result = await db.query(
+      `UPDATE courses 
+       SET status = 'APPROVED', 
+           reviewed_by = $1, 
+           reviewed_at = NOW(), 
+           published_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [adminId, courseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khóa học.' });
+    }
+
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Lỗi duyệt khóa học:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};
+
+exports.rejectCourse = async (req, res) => {
+  try {
+    const { id: courseId } = req.params;
+    const adminId = req.user.userId;
+    
+    // 1. Lấy lý do từ client gửi lên
+    const { reason } = req.body || {};
+
+    // 2. Cập nhật status và lý do vào database
+    const result = await db.query(
+      `UPDATE courses 
+       SET status = 'REJECTED', 
+           reviewed_by = $1, 
+           reviewed_at = NOW(),
+           reject_reason = $2  -- Lưu lý do vào cột mới
+       WHERE id = $3
+       RETURNING *`,
+      [adminId, reason || null, courseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy khóa học.' });
+    }
+
+    res.status(200).json(result.rows[0]);
+  } catch (err) {
+    console.error("Lỗi từ chối khóa học:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};

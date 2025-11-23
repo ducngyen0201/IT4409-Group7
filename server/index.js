@@ -10,6 +10,14 @@ const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 const lectureRoutes = require('./routes/lectureRoutes');
 const meRoutes = require('./routes/meRoutes');
+const quizRoutes = require('./routes/quizRoutes');
+const questionRoutes = require('./routes/questionRoutes');
+const attemptRoutes = require('./routes/attemptRoutes');
+const discussionRoutes = require('./routes/discussionRoutes');
+const systemRoutes = require('./routes/systemRoutes');
+const materialRoutes = require('./routes/materialRoutes');
+const optionRoutes = require('./routes/optionRoutes');
+const postRoutes = require('./routes/postRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +47,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/lectures', lectureRoutes);
 app.use('/api/me', meRoutes);
+app.use('/api/quizzes', quizRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/attempts', attemptRoutes);
+app.use('/api/threads', discussionRoutes);
+app.use('/api', systemRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/options', optionRoutes);
+app.use('/api/posts', postRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----
 app.listen(PORT, () => {

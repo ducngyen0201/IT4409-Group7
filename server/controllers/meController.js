@@ -90,3 +90,26 @@ exports.updateMe = async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
   }
 };
+
+exports.getMyQuizzes = async (req, res) => {
+  try {
+    const studentId = req.user.userId;
+
+    // Lấy danh sách các lần làm bài, kèm thông tin Quiz và Khóa học
+    const result = await db.query(
+      `SELECT qa.*, q.title as quiz_title, c.title as course_title
+       FROM quiz_attempts qa
+       JOIN quizzes q ON qa.quiz_id = q.id
+       JOIN lectures l ON q.lecture_id = l.id
+       JOIN courses c ON l.course_id = c.id
+       WHERE qa.student_id = $1
+       ORDER BY qa.started_at DESC`,
+      [studentId]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};

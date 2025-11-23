@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect, isTeacher } = require('../middleware/authMiddleware');
 const discussionController = require('../controllers/discussionController');
 
 //STT 50

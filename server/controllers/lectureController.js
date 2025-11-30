@@ -119,6 +119,7 @@ exports.getLectureDetails = async (req, res) => {
 exports.getLecturesByCourse = async (req, res) => {
   try {
     const { id: courseId } = req.params;
+    const userId = req.user ? req.user.userId : null;
     
     // Logic phân quyền
     let isInstructor = false;
@@ -133,28 +134,32 @@ exports.getLecturesByCourse = async (req, res) => {
     let query = `
       SELECT 
         l.*,
-        COALESCE(
-          json_agg(DISTINCT m.*) FILTER (WHERE m.id IS NOT NULL), 
-          '[]'
-        ) as materials,
-        COALESCE(
-          json_agg(DISTINCT q.*) FILTER (WHERE q.id IS NOT NULL), 
-          '[]'
-        ) as quizzes
+        COALESCE(json_agg(DISTINCT m.*) FILTER (WHERE m.id IS NOT NULL), '[]') as materials,
+        COALESCE(json_agg(DISTINCT q.*) FILTER (WHERE q.id IS NOT NULL), '[]') as quizzes,
+        
+        -- Cột mới: Kiểm tra xem đã hoàn thành chưa (Chỉ có giá trị nếu là Student đang login)
+        (EXISTS (
+           SELECT 1 FROM lecture_progress lp 
+           WHERE lp.lecture_id = l.id 
+           AND lp.student_id = $2 
+           AND lp.completed_at IS NOT NULL
+        )) as is_completed
+
       FROM lectures l
       LEFT JOIN materials m ON l.id = m.lecture_id
       LEFT JOIN quizzes q ON l.id = q.lecture_id
       WHERE l.course_id = $1
     `;
     
-    // Nếu KHÔNG phải giáo viên -> Chỉ lấy bài đã publish
+    const params = [courseId, userId]; // Thêm userId vào tham số thứ 2 ($2)
+
     if (!isInstructor) {
       query += " AND l.is_published = true";
     }
 
     query += " GROUP BY l.id ORDER BY l.position ASC";
 
-    const lectures = await db.query(query, [courseId]);
+    const lectures = await db.query(query, params);
     res.status(200).json(lectures.rows);
 
   } catch (err) {

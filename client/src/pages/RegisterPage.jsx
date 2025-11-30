@@ -33,12 +33,11 @@ function RegisterPage() {
       );
 
       // 5. Nếu thành công:
-      console.log(response.data); // In ra log
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      console.log(response.data);
       navigate('/login'); // Chuyển hướng sang trang Đăng nhập
 
     } catch (err) {
-      // 6. Nếu thất bại (ví dụ: email đã tồn tại)
+      // 6. Nếu thất bại
       console.error('Lỗi đăng ký:', err.response.data.error);
       setError(err.response.data.error || 'Đã có lỗi xảy ra.');
     }

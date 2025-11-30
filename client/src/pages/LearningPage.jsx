@@ -2,16 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import DiscussionSection from '../components/learning/DiscussionSection';
+import StudentQuizView from '../components/student/StudentQuizView';
 
 function LearningPage() {
   const { id: courseId } = useParams();
   const [lectures, setLectures] = useState([]);
-  const [currentLecture, setCurrentLecture] = useState(null);
-  const [videoUrl, setVideoUrl] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('lectures');
+  
+  // State quản lý nội dung đang hiển thị
+  const [currentLecture, setCurrentLecture] = useState(null); // Bài giảng đang mở
+  const [currentMaterial, setCurrentMaterial] = useState(null); // Video đang xem
+  const [activeTab, setActiveTab] = useState('content'); // 'content' (video/quiz) hoặc 'discussion'
+  const [viewingQuizId, setViewingQuizId] = useState(null); // ID quiz đang làm (nếu có)
 
-  // 1. Fetch danh sách bài giảng
+  const [loading, setLoading] = useState(true);
+
+  // 1. Fetch dữ liệu
   useEffect(() => {
     const fetchLectures = async () => {
       try {
@@ -19,8 +24,17 @@ function LearningPage() {
         const response = await axios.get(`http://localhost:5000/api/courses/${courseId}/lectures`, {
            headers: { Authorization: `Bearer ${token}` }
         });
-        setLectures(response.data);
-        if (response.data.length > 0) setCurrentLecture(response.data[0]);
+        const data = response.data;
+        setLectures(data);
+
+        // Mặc định chọn bài đầu tiên và video đầu tiên
+        if (data.length > 0) {
+          const firstLec = data[0];
+          setCurrentLecture(firstLec);
+          if (firstLec.materials && firstLec.materials.length > 0) {
+            setCurrentMaterial(firstLec.materials[0]);
+          }
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -30,110 +44,167 @@ function LearningPage() {
     fetchLectures();
   }, [courseId]);
 
-  // 2. Fetch chi tiết bài giảng (Video URL)
-  useEffect(() => {
-    const fetchLectureDetail = async () => {
-      if (!currentLecture) return;
-      try {
-        const token = sessionStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/lectures/${currentLecture.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+  // Hàm chuyển bài giảng (Mở accordion)
+  const handleLectureClick = (lec) => {
+    setCurrentLecture(lec);
+    // Nếu bài này có video, tự động chọn video đầu tiên
+    if (lec.materials && lec.materials.length > 0) {
+      handleMaterialClick(lec.materials[0]);
+    } else {
+      setCurrentMaterial(null);
+    }
+    // Reset quiz view
+    setViewingQuizId(null);
+    setActiveTab('content');
+  };
+
+  // Hàm chọn Video cụ thể
+  const handleMaterialClick = (material) => {
+    setCurrentMaterial(material);
+    setViewingQuizId(null); // Tắt quiz nếu đang xem
+    setActiveTab('content'); // Chuyển về tab nội dung
+  };
+
+  // Hàm chọn Quiz cụ thể
+  const handleQuizClick = (quizId) => {
+    setViewingQuizId(quizId);
+    setCurrentMaterial(null); // Tắt video
+    setActiveTab('content');
+  };
+
+  if (loading) return (
+    <div className="flex h-[calc(100vh-80px)] w-full items-center justify-center bg-white-900">
+      <div className="flex flex-col items-center gap-4">
+        {/* Vòng tròn xoay (Spinner) */}
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent shadow-lg shadow-indigo-500/50"></div>
         
-        const materials = response.data.materials;
-        if (materials.length > 0) setVideoUrl(materials[0].url); 
-        else setVideoUrl('');
-
-      } catch (err) {
-        console.error(err);
-        setVideoUrl('');
-      }
-    };
-    fetchLectureDetail();
-  }, [currentLecture]);
-
-  if (loading) return <div className="p-8">Đang tải lớp học...</div>;
+        {/* Chữ nhấp nháy */}
+        <p className="text-indigo-400 font-medium animate-pulse text-sm tracking-wide">
+          ĐANG TẢI DỮ LIỆU...
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-80px)] overflow-hidden bg-gray-900">
       
-      {/* --- CỘT TRÁI: VIDEO PLAYER --- */}
-      <div className="flex-1 bg-black flex items-center justify-center p-0 overflow-hidden relative">
-        {currentLecture ? (
-          videoUrl ? (
-            <video 
-              src={videoUrl} 
-              controls 
-              className="w-full h-full object-contain" // Video tự co giãn vừa khung, không bị méo
-              autoPlay
-            >
-              Trình duyệt không hỗ trợ video.
-            </video>
-          ) : (
-            <div className="text-white text-lg">Bài này chưa có video.</div>
-          )
+      {/* --- CỘT TRÁI: KHU VỰC HIỂN THỊ CHÍNH (Video hoặc Quiz) --- */}
+      <div className="flex-1 flex flex-col min-w-0 bg-black relative">
+        {activeTab === 'discussion' ? (
+           // Hiển thị Thảo luận (chiếm toàn màn hình trái)
+           <div className="bg-white h-full overflow-y-auto">
+             <DiscussionSection lectureId={currentLecture?.id} lectureTitle={currentLecture?.title} />
+           </div>
+        ) : viewingQuizId ? (
+           // Hiển thị Quiz
+           <div className="bg-white h-full overflow-y-auto p-4">
+             <StudentQuizView quizId={viewingQuizId} />
+           </div>
+        ) : currentMaterial ? (
+           // Hiển thị Video
+           <div className="flex-1 flex items-center justify-center bg-black h-full">
+             <video 
+               src={currentMaterial.url} 
+               controls 
+               className="w-full h-full object-contain"
+               autoPlay
+               key={currentMaterial.url} // Key quan trọng để reload player khi đổi bài
+             >
+               Trình duyệt không hỗ trợ video.
+             </video>
+           </div>
         ) : (
-          <div className="text-white text-lg">Chưa có bài giảng nào.</div>
+           <div className="flex items-center justify-center h-full text-gray-500">
+             Chọn nội dung bên phải để bắt đầu học.
+           </div>
         )}
       </div>
 
-      {/* --- CỘT PHẢI: TABS (Bài giảng / Thảo luận) --- */}
+      {/* --- CỘT PHẢI: DANH SÁCH BÀI GIẢNG (Accordion) --- */}
       <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-full shrink-0">
         
-        {/* THANH TAB */}
+        {/* Thanh Tab chuyển đổi giữa Nội dung / Thảo luận */}
         <div className="flex border-b text-sm font-medium text-center text-gray-500 bg-gray-50">
           <button 
-            className={`flex-1 p-4 ${activeTab === 'lectures' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:text-gray-700 hover:bg-gray-100'}`}
-            onClick={() => setActiveTab('lectures')}
+            className={`flex-1 p-3 ${activeTab === 'content' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`}
+            onClick={() => setActiveTab('content')}
           >
             Nội dung
           </button>
           <button 
-            className={`flex-1 p-4 ${activeTab === 'discussion' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:text-gray-700 hover:bg-gray-100'}`}
+            className={`flex-1 p-3 ${activeTab === 'discussion' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`}
             onClick={() => setActiveTab('discussion')}
           >
             Thảo luận
           </button>
         </div>
-        
-        {/* NỘI DUNG TAB */}
-        <div className="flex-1 overflow-y-auto relative">
-          
-          {/* TAB 1: DANH SÁCH BÀI GIẢNG */}
-          {activeTab === 'lectures' && (
-            <ul>
-              {lectures.map((lec, idx) => (
-                <li 
-                  key={lec.id}
-                  onClick={() => setCurrentLecture(lec)}
-                  className={`p-4 border-b cursor-pointer hover:bg-gray-100 transition flex items-start gap-3
-                    ${currentLecture?.id === lec.id ? 'bg-indigo-50 border-l-4 border-l-indigo-600' : ''}`}
+
+        {/* Danh sách Accordion */}
+        <div className="flex-1 overflow-y-auto">
+          {lectures.map((lec, idx) => {
+            const isActive = currentLecture?.id === lec.id;
+
+            return (
+              <div key={lec.id} className="border-b border-gray-100">
+                {/* 1. Header Bài giảng (Luôn hiện) */}
+                <div 
+                  onClick={() => handleLectureClick(lec)}
+                  className={`p-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center
+                    ${isActive ? 'bg-gray-50 border-l-4 border-l-indigo-600' : ''}`}
                 >
-                  <div className="mt-1 text-xs text-gray-500 font-mono">
-                    {idx + 1}.
-                  </div>
                   <div>
-                    <div className={`text-sm font-medium ${currentLecture?.id === lec.id ? 'text-indigo-700' : 'text-gray-800'}`}>
-                      {lec.title}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {lec.duration_sec ? `${Math.floor(lec.duration_sec / 60)} phút` : 'Video'}
-                    </div>
+                    <div className="text-xs text-gray-500 font-bold mb-1">CHƯƠNG {idx + 1}</div>
+                    <div className="text-sm font-medium text-gray-900">{lec.title}</div>
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <span className="text-gray-400 text-xs">{isActive ? '▼' : '▶'}</span>
+                </div>
 
-          {/* TAB 2: THẢO LUẬN */}
-          {activeTab === 'discussion' && currentLecture && (
-            <DiscussionSection lectureId={currentLecture.id} lectureTitle={currentLecture.title}/>
-          )}
-          
-          {activeTab === 'discussion' && !currentLecture && (
-            <div className="p-4 text-center text-gray-500">Vui lòng chọn bài giảng để xem thảo luận.</div>
-          )}
+                {/* 2. Nội dung mở rộng (Chỉ hiện khi Active) */}
+                {isActive && (
+                  <div className="bg-indigo-50/50 pb-2">
+                    
+                    {/* Danh sách Video/Tài liệu */}
+                    {lec.materials && lec.materials.map((mat) => (
+                      <div 
+                        key={mat.id}
+                        onClick={() => handleMaterialClick(mat)}
+                        className={`pl-8 pr-4 py-2 text-sm cursor-pointer flex items-center gap-2 hover:text-indigo-700
+                          ${currentMaterial?.id === mat.id && !viewingQuizId ? 'text-indigo-700 font-semibold bg-indigo-100' : 'text-gray-600'}`}
+                      >
+                        <span>🎥</span> {/* Icon Video */}
+                        <span className="truncate">{mat.title}</span>
+                        {/* Hiển thị thời lượng nếu có */}
+                      </div>
+                    ))}
 
+                    {/* Danh sách Quiz */}
+                    {lec.quizzes && lec.quizzes.map((quiz) => (
+                      <div 
+                        key={quiz.id}
+                        onClick={() => {
+                            if(quiz.is_published) handleQuizClick(quiz.id);
+                            else alert("Bài tập chưa mở.");
+                        }}
+                        className={`pl-8 pr-4 py-2 text-sm cursor-pointer flex items-center gap-2 hover:text-purple-700
+                          ${viewingQuizId === quiz.id ? 'text-purple-700 font-semibold bg-purple-100' : 'text-gray-600'}`}
+                      >
+                        <span>📝</span> {/* Icon Quiz */}
+                        <span className="truncate">{quiz.title}</span>
+                      </div>
+                    ))}
+
+                    {/* Thông báo nếu trống */}
+                    {(!lec.materials?.length && !lec.quizzes?.length) && (
+                      <div className="pl-8 py-2 text-xs text-gray-400 italic">
+                        (Chưa có nội dung)
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

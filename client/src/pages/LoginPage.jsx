@@ -37,7 +37,6 @@ function LoginPage() {
       login(response.data.token, response.data.user);
 
       // 3. Chuyển hướng về trang chủ
-      alert('Đăng nhập thành công!');
       navigate('/');
 
     } catch (err) {

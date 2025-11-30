@@ -5,7 +5,7 @@ exports.createQuiz = async (req, res) => {
     const { id: lectureId } = req.params;
     const teacherId = req.user.userId;
     
-    const { 
+    const {
       title, 
       time_limit_sec, 
       attempts_allowed, 
@@ -40,16 +40,16 @@ exports.createQuiz = async (req, res) => {
     // 3. TẠO QUIZ MỚI
     const newQuiz = await db.query(
       `INSERT INTO quizzes 
-       (lecture_id, title, time_limit_sec, attempts_allowed, grading_policy, due_at, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, false)
+       (lecture_id, title, time_limit_sec, attempts_allowed, grading_policy, due_at, is_published, shuffle_questions)
+       VALUES ($1, $2, $3, $4, $5, $6, false, $7) 
        RETURNING *`,
       [
         lectureId,
         title,
-        time_limit_sec || null,    // Null = không giới hạn thời gian
-        attempts_allowed || 1,     // Mặc định 1 lần làm
-        grading_policy || 'HIGHEST', // Mặc định lấy điểm cao nhất
-        due_at || null,             // Hạn chót
+        time_limit_sec || null,
+        attempts_allowed || 1,
+        grading_policy || 'HIGHEST',
+        due_at || null,
         shuffle_questions || false
       ]
     );

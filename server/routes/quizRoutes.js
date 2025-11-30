@@ -20,4 +20,7 @@ router.post('/:id/attempts', protect, isStudent, attemptController.startAttempt)
 //STT 45
 router.get('/:id/grade', protect, quizController.getQuizGrade);
 
+// API Mới: Lấy danh sách câu hỏi (Teacher)
+router.get('/:id/questions', protect, isTeacher, questionController.getQuestionsForTeacher);
+
 module.exports = router;

@@ -120,15 +120,9 @@ exports.getLecturesByCourse = async (req, res) => {
   try {
     const { id: courseId } = req.params;
     
-    // Logic phân quyền hiển thị:
-    // - Nếu là TEACHER/ADMIN: Xem được tất cả (để soạn bài).
-    // - Nếu là STUDENT: Chỉ xem được bài đã 'is_published = true'.
-    
+    // Logic phân quyền
     let isInstructor = false;
-    
-    // Kiểm tra token nếu có gửi lên (để biết có phải giáo viên không)
     if (req.user && (req.user.role === 'TEACHER' || req.user.role === 'ADMIN')) {
-       // Check kỹ hơn xem có phải giáo viên của khóa này không
        const check = await db.query(
          "SELECT * FROM course_instructors WHERE course_id = $1 AND user_id = $2",
          [courseId, req.user.userId]
@@ -136,17 +130,31 @@ exports.getLecturesByCourse = async (req, res) => {
        if (check.rows.length > 0) isInstructor = true;
     }
 
-    let query = "SELECT * FROM lectures WHERE course_id = $1";
-    const params = [courseId];
-
-    // Nếu không phải giáo viên, chỉ lấy bài đã publish
+    let query = `
+      SELECT 
+        l.*,
+        COALESCE(
+          json_agg(DISTINCT m.*) FILTER (WHERE m.id IS NOT NULL), 
+          '[]'
+        ) as materials,
+        COALESCE(
+          json_agg(DISTINCT q.*) FILTER (WHERE q.id IS NOT NULL), 
+          '[]'
+        ) as quizzes
+      FROM lectures l
+      LEFT JOIN materials m ON l.id = m.lecture_id
+      LEFT JOIN quizzes q ON l.id = q.lecture_id
+      WHERE l.course_id = $1
+    `;
+    
+    // Nếu KHÔNG phải giáo viên -> Chỉ lấy bài đã publish
     if (!isInstructor) {
-      query += " AND is_published = true";
+      query += " AND l.is_published = true";
     }
 
-    query += " ORDER BY position ASC";
+    query += " GROUP BY l.id ORDER BY l.position ASC";
 
-    const lectures = await db.query(query, params);
+    const lectures = await db.query(query, [courseId]);
     res.status(200).json(lectures.rows);
 
   } catch (err) {

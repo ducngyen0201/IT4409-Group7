@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import
 
 function TeacherDashboard() {
   const [courses, setCourses] = useState([]);
@@ -23,7 +24,7 @@ function TeacherDashboard() {
     fetchMyCourses();
   }, []);
 
-  if (loading) return <div className="p-8">Đang tải...</div>;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="container p-8 mx-auto">

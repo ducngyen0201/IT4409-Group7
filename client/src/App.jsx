@@ -9,6 +9,8 @@ import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import CreateCoursePage from './pages/teacher/CreateCoursePage';
 import TeacherCourseDetail from './pages/teacher/TeacherCourseDetail';
 import LearningPage from './pages/LearningPage';
+import MyCoursesPage from './pages/student/MyCoursesPage';
+import TeacherQuizEditor from './pages/teacher/TeacherQuizEditor';
 
 function App() {
   return (
@@ -50,6 +52,22 @@ function App() {
           element={
             <ProtectedRoute roles={['STUDENT', 'TEACHER', 'ADMIN']}>
               <LearningPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/my-courses" 
+          element={
+            <ProtectedRoute roles={['STUDENT']}>
+              <MyCoursesPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/teacher/lectures/:lectureId/quiz" 
+          element={
+            <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
+              <TeacherQuizEditor />
             </ProtectedRoute>
           } 
         />

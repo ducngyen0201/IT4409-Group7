@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import LectureManager from '../../components/teacher/LectureManager';
+import
 
 function TeacherCourseDetail() {
   const { id } = useParams(); // Lấy ID khóa học từ URL
@@ -84,7 +85,7 @@ function TeacherCourseDetail() {
     }
   };
 
-  if (loading) return <div className="p-8">Đang tải...</div>;
+  if (loading) return <LoadingSpinner />;
   if (!course) return <div className="p-8">Không tìm thấy khóa học.</div>;
 
   return (

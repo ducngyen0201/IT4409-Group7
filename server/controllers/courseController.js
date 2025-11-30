@@ -93,7 +93,7 @@ exports.getCourseDetails = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // ----- Truy vấn 1: Lấy thông tin khóa học -----
+    // 1. Lấy thông tin khóa học
     const courseResult = await db.query("SELECT * FROM courses WHERE id = $1", [id]);
 
     if (courseResult.rows.length === 0) {
@@ -101,35 +101,38 @@ exports.getCourseDetails = async (req, res) => {
     }
     const course = courseResult.rows[0];
 
-    // ----- LOGIC PHÂN QUYỀN -----
+    // 2. Logic Phân quyền (Giữ nguyên)
     let showAllLectures = false;
-
-    // Nếu người dùng có đăng nhập và là TEACHER/ADMIN
     if (req.user && (req.user.role === 'TEACHER' || req.user.role === 'ADMIN')) {
-      // Kiểm tra xem có phải là giảng viên của khóa này không
       const instructorCheck = await db.query(
         "SELECT * FROM course_instructors WHERE course_id = $1 AND user_id = $2",
         [id, req.user.userId]
       );
       if (instructorCheck.rows.length > 0) {
-        showAllLectures = true; // Là chủ sở hữu -> Xem hết
+        showAllLectures = true;
       }
     }
 
-    // ----- Truy vấn 2: Lấy danh sách bài giảng -----
-    let lectureQuery = "SELECT * FROM lectures WHERE course_id = $1";
+    // 3. Lấy danh sách bài giảng + THÔNG TIN QUIZ (Sửa đoạn này)
+    let query = `
+      SELECT l.*, 
+             q.id as quiz_id, 
+             q.is_published as quiz_published 
+      FROM lectures l
+      LEFT JOIN quizzes q ON l.id = q.lecture_id
+      WHERE l.course_id = $1
+    `;
     
     // Nếu KHÔNG phải chủ sở hữu -> Chỉ lấy bài đã publish
     if (!showAllLectures) {
-      lectureQuery += " AND is_published = true";
+      query += " AND l.is_published = true";
     }
 
-    lectureQuery += " ORDER BY position ASC";
+    query += " ORDER BY l.position ASC";
 
-    const lecturesResult = await db.query(lectureQuery, [id]);
+    const lecturesResult = await db.query(query, [id]);
     const lectures = lecturesResult.rows;
 
-    // 3. Gộp kết quả
     res.status(200).json({
       course: course,
       lectures: lectures

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function CourseDetailPage() {
   const { id } = useParams();
@@ -77,7 +78,7 @@ function CourseDetailPage() {
     }
   };
 
-  if (loading) return <div className="p-8">Đang tải...</div>;
+  if (loading) return <LoadingSpinner />;
   if (!course) return <div className="p-8">Không tìm thấy khóa học.</div>;
 
   return (
@@ -122,33 +123,38 @@ function CourseDetailPage() {
         <h2 className="text-xl font-bold mb-4">Nội dung khóa học</h2>
         <div className="space-y-2">
           {lectures.map((lec, index) => {
-            // Kiểm tra xem có được phép học không
             const canLearn = enrollmentStatus === 'APPROVED';
 
             return (
               <div 
                 key={lec.id} 
-                // Nếu được học -> Thêm sự kiện click chuyển trang
                 onClick={() => {
-                  if (canLearn) {
-                    navigate(`/course/${id}/learn`);
-                  } else {
-                    alert("Bạn cần đăng ký khóa học để xem bài này.");
-                  }
+                  if (canLearn) navigate(`/course/${id}/learn`);
+                  else alert("Bạn cần đăng ký khóa học để xem bài này.");
                 }}
-                // Style động: Nếu được học thì hiện con trỏ tay (pointer) và hiệu ứng hover
-                className={`flex justify-between p-3 border-b last:border-0 transition duration-200
+                className={`flex justify-between items-center p-3 border-b last:border-0 transition duration-200
                   ${canLearn 
                     ? 'cursor-pointer hover:bg-indigo-50 hover:text-indigo-700' 
                     : 'opacity-75 cursor-not-allowed bg-gray-50'
                   }`}
               >
-                <span className="font-medium">
-                  Bài {index + 1}: {lec.title}
-                </span>
+                {/* CỘT TRÁI: TÊN BÀI + ICON QUIZ */}
+                <div className="flex items-center gap-3">
+                  <span className="font-medium">
+                    Bài {index + 1}: {lec.title}
+                  </span>
+                  
+                  {/* --- HIỂN THỊ ICON QUIZ --- */}
+                  {lec.quiz_id && lec.quiz_published && (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200 font-semibold whitespace-nowrap">
+                      📝 Bài tập
+                    </span>
+                  )}
+                  {/* ------------------------- */}
+                </div>
                 
-                {/* Icon trạng thái */}
-                <span className="text-sm">
+                {/* CỘT PHẢI: TRẠNG THÁI KHÓA/MỞ */}
+                <span className="text-sm shrink-0 ml-4">
                   {canLearn ? (
                     <span className="text-indigo-600 font-semibold">▶️ Học ngay</span>
                   ) : (

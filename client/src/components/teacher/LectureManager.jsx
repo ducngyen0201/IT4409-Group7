@@ -1,6 +1,7 @@
 // file: client/src/components/teacher/LectureManager.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 function LectureManager({ courseId }) {
   const [lectures, setLectures] = useState([]);
@@ -120,16 +121,40 @@ function LectureManager({ courseId }) {
           <div key={lecture.id} className="border rounded-lg p-4 bg-white shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="font-semibold text-lg">{lecture.title}</h3>
-                <span className={`text-xs px-2 py-1 rounded ${lecture.is_published ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
-                  {lecture.is_published ? 'Đã xuất bản' : 'Bản nháp'}
-                </span>
+                {/* Tiêu đề bài giảng */}
+                <h3 className="font-semibold text-lg leading-tight">{lecture.title}</h3>
+                
+                <div className="flex items-center gap-2 mt-1">
+                   
+                   {/* Badge Trạng thái */}
+                   <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${lecture.is_published ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-800'}`}>
+                    {lecture.is_published ? 'Đã xuất bản' : 'Bản nháp'}
+                  </span>
+                  
+                  {/* Badge Quiz */}
+                  {lecture.quiz_id ? (
+                    <Link 
+                      to={`/teacher/lectures/${lecture.id}/quiz`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors"
+                    >
+                      ✏️ Sửa Quiz {lecture.quiz_published ? '(Đã đăng)' : '(Nháp)'}
+                    </Link>
+                  ) : (
+                    <Link 
+                      to={`/teacher/lectures/${lecture.id}/quiz`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    >
+                      ➕ Tạo Quiz
+                    </Link>
+                  )}
+                </div>
+
               </div>
               
               {!lecture.is_published && (
                 <button
                   onClick={() => handlePublish(lecture.id)}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-blue-600 hover:underline shrink-0 ml-4"
                 >
                   Xuất bản ngay
                 </button>

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router(); 
 
-const { protect, isStudent } = require('../middleware/authMiddleware');
+const { protect, isStudent, isTeacher } = require('../middleware/authMiddleware');
 const meController = require('../controllers/meController');
 const progressController = require('../controllers/progressController');
 const notificationController = require('../controllers/notificationController');
@@ -41,6 +41,13 @@ router.patch(
   '/password',
   protect, 
   meController.changePassword
+);
+
+router.get(
+  '/teaching',
+  protect,
+  isTeacher,
+  meController.getMyTeachingCourses
 );
 
 module.exports = router;

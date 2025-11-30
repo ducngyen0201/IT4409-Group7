@@ -58,3 +58,24 @@ exports.isAdmin = (req, res, next) => {
     res.status(403).json({ error: 'Quyền truy cập bị từ chối. Yêu cầu quyền Admin.' });
   }
 };
+
+exports.identifyUser = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = decoded; // Gắn user vào request nếu token đúng
+    } catch (error) {
+      // Token lỗi hoặc hết hạn -> Không làm gì cả, cứ coi như khách vãng lai
+      console.log("Token không hợp lệ trong identifyUser:", error.message);
+    }
+  }
+  
+  // Dù có token hay không, vẫn cho đi tiếp
+  next();
+};

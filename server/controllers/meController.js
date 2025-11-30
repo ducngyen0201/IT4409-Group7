@@ -159,3 +159,25 @@ exports.changePassword = async (req, res) => {
     res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
   }
 };
+
+// [API Bổ sung] Lấy danh sách khóa học do tôi dạy (Cho Teacher)
+exports.getMyTeachingCourses = async (req, res) => {
+  try {
+    const teacherId = req.user.userId;
+
+    // Lấy tất cả khóa học mà user này là 'OWNER' hoặc 'ASSISTANT'
+    const result = await db.query(
+      `SELECT c.*, ci.role as instructor_role
+       FROM courses c
+       JOIN course_instructors ci ON c.id = ci.course_id
+       WHERE ci.user_id = $1
+       ORDER BY c.created_at DESC`,
+      [teacherId]
+    );
+
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};

@@ -95,3 +95,38 @@ exports.deleteMaterial = async (req, res) => {
     res.status(500).json({ error: "Lỗi Server" });
   }
 };
+
+// [API MỚI] Cập nhật thông tin tài liệu
+exports.updateMaterial = async (req, res) => {
+  try {
+    const { id: materialId } = req.params;
+    const userId = req.user.userId;
+    const { title } = req.body;
+
+    // 1. Kiểm tra quyền sở hữu (Join qua lecture -> course -> instructors)
+    const checkOwner = await db.query(
+      `SELECT m.id 
+       FROM materials m
+       JOIN lectures l ON m.lecture_id = l.id
+       JOIN course_instructors ci ON l.course_id = ci.course_id
+       WHERE m.id = $1 AND ci.user_id = $2`,
+      [materialId, userId]
+    );
+
+    if (checkOwner.rows.length === 0) {
+      return res.status(403).json({ error: 'Bạn không có quyền sửa tài liệu này.' });
+    }
+
+    // 2. Cập nhật
+    const updatedMaterial = await db.query(
+      "UPDATE materials SET title = $1 WHERE id = $2 RETURNING *",
+      [title, materialId]
+    );
+
+    res.status(200).json(updatedMaterial.rows[0]);
+
+  } catch (err) {
+    console.error("Lỗi sửa tài liệu:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};

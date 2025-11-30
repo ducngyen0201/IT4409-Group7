@@ -91,33 +91,51 @@ exports.getAllPublishedCourses = async (req, res) => {
 
 exports.getCourseDetails = async (req, res) => {
   try {
-    // 1. Lấy ID của khóa học từ URL (ví dụ: /api/courses/1)
     const { id } = req.params;
 
-    // ----- Truy vấn 1: Lấy thông tin khóa học -----
-    const courseResult = await db.query(
-      "SELECT * FROM courses WHERE id = $1", 
-      [id]
-    );
+    // 1. Lấy thông tin khóa học
+    const courseResult = await db.query("SELECT * FROM courses WHERE id = $1", [id]);
 
-    // Kiểm tra xem khóa học có tồn tại không
     if (courseResult.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy khóa học.' });
     }
     const course = courseResult.rows[0];
 
-    // ----- Truy vấn 2: Lấy tất cả bài giảng của khóa học đó -----
-    // (Sắp xếp theo 'position' - thứ tự bài giảng)
-    const lecturesResult = await db.query(
-      "SELECT * FROM lectures WHERE course_id = $1 ORDER BY position ASC",
-      [id]
-    );
+    // 2. Logic Phân quyền (Giữ nguyên)
+    let showAllLectures = false;
+    if (req.user && (req.user.role === 'TEACHER' || req.user.role === 'ADMIN')) {
+      const instructorCheck = await db.query(
+        "SELECT * FROM course_instructors WHERE course_id = $1 AND user_id = $2",
+        [id, req.user.userId]
+      );
+      if (instructorCheck.rows.length > 0) {
+        showAllLectures = true;
+      }
+    }
+
+    // 3. Lấy danh sách bài giảng + THÔNG TIN QUIZ (Sửa đoạn này)
+    let query = `
+      SELECT l.*, 
+             q.id as quiz_id, 
+             q.is_published as quiz_published 
+      FROM lectures l
+      LEFT JOIN quizzes q ON l.id = q.lecture_id
+      WHERE l.course_id = $1
+    `;
+    
+    // Nếu KHÔNG phải chủ sở hữu -> Chỉ lấy bài đã publish
+    if (!showAllLectures) {
+      query += " AND l.is_published = true";
+    }
+
+    query += " ORDER BY l.position ASC";
+
+    const lecturesResult = await db.query(query, [id]);
     const lectures = lecturesResult.rows;
 
-    // 3. Gộp kết quả và trả về
     res.status(200).json({
-      course: course,       // Thông tin khóa học
-      lectures: lectures    // Danh sách bài giảng
+      course: course,
+      lectures: lectures
     });
 
   } catch (err) {

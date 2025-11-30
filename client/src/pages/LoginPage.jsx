@@ -1,7 +1,8 @@
 // file: client/src/pages/LoginPage.jsx
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 function LoginPage() {
   const [formData, setFormData] = useState({
@@ -9,6 +10,7 @@ function LoginPage() {
     password: '',
   });
   const [error, setError] = useState('');
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   // Hàm xử lý khi gõ chữ
@@ -32,15 +34,9 @@ function LoginPage() {
       );
 
       // 2. LẤY TOKEN VÀ LƯU VÀO SESSION STORAGE
-      // (Tự động xóa khi đóng tab/trình duyệt)
-      sessionStorage.setItem('token', response.data.token);
+      login(response.data.token, response.data.user);
 
-      // (Tùy chọn lưu thông tin user)
-      // sessionStorage.setItem('user', JSON.stringify(response.data.user));
-
-      // 3. Chuyển hướng đến trang chủ (Homepage)
-      sessionStorage.setItem('token', response.data.token);
-      alert('Đăng nhập thành công!');
+      // 3. Chuyển hướng về trang chủ
       navigate('/');
 
     } catch (err) {

@@ -3,7 +3,7 @@ const router = express.Router();
 const lectureController = require('../controllers/lectureController');
 const courseController = require('../controllers/courseController');
 const enrollmentRoutes = require('./enrollmentRoutes');
-const { protect, isTeacher, isStudent, isAdmin } = require('../middleware/authMiddleware');
+const { protect, isTeacher, isStudent, isAdmin, identifyUser } = require('../middleware/authMiddleware');
 const instructorController = require('../controllers/instructorController');
 const progressController = require('../controllers/progressController');
 
@@ -14,7 +14,7 @@ router.post('/', protect, isTeacher, courseController.createCourse);
 router.get('/', courseController.getAllPublishedCourses);
 
 //STT 11
-router.get('/:id', courseController.getCourseDetails);
+router.get('/:id', identifyUser, courseController.getCourseDetails);
 
 //STT 12
 router.patch('/:id', protect, isTeacher, courseController.updateCourse);
@@ -44,7 +44,7 @@ router.post('/:id/instructors', protect, isTeacher, instructorController.addInst
 router.delete('/:id/instructors/:userId', protect, isTeacher, instructorController.removeInstructor);
 
 //STT 25
-router.get('/:id/lectures', lectureController.getLecturesByCourse);
+router.get('/:id/lectures', identifyUser, lectureController.getLecturesByCourse);
 
 //STT 55
 router.get('/:id/progress', protect, isTeacher, progressController.getCourseProgressForTeacher);

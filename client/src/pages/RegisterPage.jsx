@@ -1,7 +1,7 @@
 // file: client/src/pages/RegisterPage.jsx
-import React, { useState } from 'react'; // <-- 1. Import useState
-import axios from 'axios'; // <-- 2. Import axios
-import { useNavigate } from 'react-router-dom'; // <-- 3. Import useNavigate (để chuyển trang)
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -9,8 +9,8 @@ function RegisterPage() {
     email: '',
     password: '',
   });
-  const [error, setError] = useState(''); // Để lưu thông báo lỗi
-  const navigate = useNavigate(); // Khởi tạo hook chuyển trang
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   // Hàm này chạy mỗi khi người dùng gõ chữ
   const handleChange = (e) => {
@@ -33,12 +33,11 @@ function RegisterPage() {
       );
 
       // 5. Nếu thành công:
-      console.log(response.data); // In ra log
-      alert('Đăng ký thành công! Vui lòng đăng nhập.');
+      console.log(response.data);
       navigate('/login'); // Chuyển hướng sang trang Đăng nhập
 
     } catch (err) {
-      // 6. Nếu thất bại (ví dụ: email đã tồn tại)
+      // 6. Nếu thất bại
       console.error('Lỗi đăng ký:', err.response.data.error);
       setError(err.response.data.error || 'Đã có lỗi xảy ra.');
     }

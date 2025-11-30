@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import CourseCard from '../components/CourseCard'; // <-- 1. Import thẻ
+import CourseCard from '../components/CourseCard';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function HomePage() {
   const [courses, setCourses] = useState([]);
@@ -28,9 +29,8 @@ function HomePage() {
   }, []); // Mảng rỗng [] nghĩa là chỉ chạy 1 lần khi mount
 
   // 3. Xử lý các trạng thái
-  if (loading) {
-    return <div className="p-8 text-center">Đang tải...</div>;
-  }
+  if (loading) return <LoadingSpinner />;
+  
   if (error) {
     return <div className="p-8 text-center text-red-500">{error}</div>;
   }

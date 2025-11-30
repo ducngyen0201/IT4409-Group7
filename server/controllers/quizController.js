@@ -5,7 +5,7 @@ exports.createQuiz = async (req, res) => {
     const { id: lectureId } = req.params;
     const teacherId = req.user.userId;
     
-    const { 
+    const {
       title, 
       time_limit_sec, 
       attempts_allowed, 
@@ -40,16 +40,16 @@ exports.createQuiz = async (req, res) => {
     // 3. TẠO QUIZ MỚI
     const newQuiz = await db.query(
       `INSERT INTO quizzes 
-       (lecture_id, title, time_limit_sec, attempts_allowed, grading_policy, due_at, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, false)
+       (lecture_id, title, time_limit_sec, attempts_allowed, grading_policy, due_at, is_published, shuffle_questions)
+       VALUES ($1, $2, $3, $4, $5, $6, false, $7) 
        RETURNING *`,
       [
         lectureId,
         title,
-        time_limit_sec || null,    // Null = không giới hạn thời gian
-        attempts_allowed || 1,     // Mặc định 1 lần làm
-        grading_policy || 'HIGHEST', // Mặc định lấy điểm cao nhất
-        due_at || null,             // Hạn chót
+        time_limit_sec || null,
+        attempts_allowed || 1,
+        grading_policy || 'HIGHEST',
+        due_at || null,
         shuffle_questions || false
       ]
     );
@@ -194,6 +194,23 @@ exports.getQuizGrade = async (req, res) => {
 
   } catch (err) {
     console.error("Lỗi lấy điểm quiz:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};
+
+// [API Bổ sung] Lấy chi tiết Quiz theo ID
+exports.getQuizById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const quizQuery = await db.query("SELECT * FROM quizzes WHERE id = $1", [id]);
+
+    if (quizQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy Quiz.' });
+    }
+
+    res.status(200).json(quizQuery.rows[0]);
+  } catch (err) {
+    console.error("Lỗi lấy quiz theo ID:", err.message);
     res.status(500).json({ error: "Lỗi Server" });
   }
 };

@@ -23,4 +23,6 @@ router.get('/:id/grade', protect, quizController.getQuizGrade);
 // API Mới: Lấy danh sách câu hỏi (Teacher)
 router.get('/:id/questions', protect, isTeacher, questionController.getQuestionsForTeacher);
 
+router.get('/:id', protect, quizController.getQuizById);
+
 module.exports = router;

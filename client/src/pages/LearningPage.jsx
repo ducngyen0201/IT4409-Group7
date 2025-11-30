@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import DiscussionSection from '../components/learning/DiscussionSection';
 import StudentQuizView from '../components/student/StudentQuizView';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 function LearningPage() {
   const { id: courseId } = useParams();

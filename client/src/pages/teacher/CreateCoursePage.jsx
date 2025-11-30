@@ -39,7 +39,7 @@ function CreateCoursePage() {
 
       alert('Tạo khóa học thành công!');
       // Chuyển hướng về trang danh sách
-      navigate('/teacher/courses');
+      navigate('/manage/courses');
 
     } catch (err) {
       console.error(err);
@@ -114,7 +114,7 @@ function CreateCoursePage() {
 
             <div className="flex items-center justify-end space-x-3">
               <Link 
-                to="/teacher/courses"
+                to="/manage/courses"
                 className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
               >
                 Hủy bỏ

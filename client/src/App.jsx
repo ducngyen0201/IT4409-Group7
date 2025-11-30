@@ -24,7 +24,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/course/:id" element={<CourseDetailPage />} />
           <Route 
-            path="/teacher/courses" 
+            path="/manage/courses" 
             element={
               <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
                 <TeacherDashboard />
@@ -32,7 +32,7 @@ function App() {
             } 
           />
           <Route 
-          path="/teacher/courses/create" 
+          path="/manage/courses/create" 
           element={
             <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
               <CreateCoursePage />
@@ -40,13 +40,29 @@ function App() {
           } 
         />
         <Route 
-          path="/teacher/courses/:id" 
+          path="/manage/courses/:id" 
           element={
             <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
               <TeacherCourseDetail />
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/manage/lectures/:lectureId/quiz/new" 
+          element={
+            <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
+              <TeacherQuizEditor />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+            path="/manage/quizzes/:quizId" 
+            element={
+              <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
+                <TeacherQuizEditor />
+              </ProtectedRoute>
+            } 
+          />
         <Route 
           path="/course/:id/learn" 
           element={
@@ -60,14 +76,6 @@ function App() {
           element={
             <ProtectedRoute roles={['STUDENT']}>
               <MyCoursesPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/teacher/lectures/:lectureId/quiz" 
-          element={
-            <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
-              <TeacherQuizEditor />
             </ProtectedRoute>
           } 
         />

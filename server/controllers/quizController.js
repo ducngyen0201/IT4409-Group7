@@ -197,3 +197,20 @@ exports.getQuizGrade = async (req, res) => {
     res.status(500).json({ error: "Lỗi Server" });
   }
 };
+
+// [API Bổ sung] Lấy chi tiết Quiz theo ID
+exports.getQuizById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const quizQuery = await db.query("SELECT * FROM quizzes WHERE id = $1", [id]);
+
+    if (quizQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy Quiz.' });
+    }
+
+    res.status(200).json(quizQuery.rows[0]);
+  } catch (err) {
+    console.error("Lỗi lấy quiz theo ID:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
+  }
+};

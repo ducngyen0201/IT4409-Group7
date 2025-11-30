@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 function TeacherDashboard() {
   const [courses, setCourses] = useState([]);
@@ -32,7 +32,7 @@ function TeacherDashboard() {
         <h1 className="text-2xl font-bold">Quản lý khóa học</h1>
         {/* Nút tạo khóa học mới (Chúng ta sẽ làm trang CreateCourse sau) */}
         <Link 
-          to="/teacher/courses/create" 
+          to="/manage/courses/create" 
           className="px-4 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700"
         >
           + Tạo khóa học
@@ -65,7 +65,7 @@ function TeacherDashboard() {
                   </td>
                   <td className="p-4 border-b">
                     <Link 
-                      to={`/teacher/courses/${course.id}`} 
+                      to={`/manage/courses/${course.id}`} 
                       className="text-indigo-600 hover:underline"
                     >
                       Chỉnh sửa

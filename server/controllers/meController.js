@@ -1,4 +1,5 @@
 const db = require('../db');
+const bcrypt = require('bcrypt');
 
 exports.getMyEnrollments = async (req, res) => {
   try {
@@ -111,5 +112,50 @@ exports.getMyQuizzes = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Lỗi Server" });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { currentPassword, newPassword } = req.body;
+
+    // 1. Kiểm tra input
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới.' });
+    }
+
+    // 2. Lấy mật khẩu đã mã hóa (password_hash) từ database
+    const userQuery = await db.query(
+      "SELECT password_hash FROM users WHERE id = $1",
+      [userId]
+    );
+    
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Người dùng không tồn tại.' });
+    }
+    const user = userQuery.rows[0];
+
+    // 3. So sánh mật khẩu hiện tại (Client gửi) với mật khẩu trong DB
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Mật khẩu hiện tại không đúng.' });
+    }
+
+    // 4. Mã hóa mật khẩu MỚI
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // 5. Cập nhật vào Database
+    await db.query(
+      "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2",
+      [newPasswordHash, userId]
+    );
+
+    res.status(200).json({ message: 'Đổi mật khẩu thành công.' });
+
+  } catch (err) {
+    console.error("Lỗi đổi mật khẩu:", err.message);
+    res.status(500).json({ error: "Lỗi máy chủ nội bộ" });
   }
 };

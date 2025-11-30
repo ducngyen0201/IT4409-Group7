@@ -36,4 +36,11 @@ router.get( '/notifications', protect, notificationController.getMyNotifications
 //STT 57
 router.post('/notifications/:id/read', protect, notificationController.markAsRead);
 
+// Đổi mật khẩu
+router.patch(
+  '/password',
+  protect, 
+  meController.changePassword
+);
+
 module.exports = router;

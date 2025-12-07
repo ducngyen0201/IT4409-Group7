@@ -11,6 +11,7 @@ import TeacherCourseDetail from './pages/teacher/TeacherCourseDetail';
 import LearningPage from './pages/LearningPage';
 import MyCoursesPage from './pages/student/MyCoursesPage';
 import TeacherQuizEditor from './pages/teacher/TeacherQuizEditor';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
   return (
@@ -23,6 +24,15 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/course/:id" element={<CourseDetailPage />} />
+          {/* Admin Routes */}
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute roles={['ADMIN']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/manage/courses" 
             element={

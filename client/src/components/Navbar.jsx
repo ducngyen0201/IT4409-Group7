@@ -153,14 +153,14 @@ function Navbar() {
 
                       {/* Các mục menu */}
                       <Link 
-                        to="/profile" // Bạn sẽ cần tạo trang Profile sau
+                        to="/profile"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
                         onClick={() => setShowUserMenu(false)}
                       >
                         👤 Hồ sơ cá nhân
                       </Link>
 
-                      {/* Link khóa học (Tùy role) */}
+                      {/* Link khóa học */}
                       {user.role === 'STUDENT' && (
                         <Link 
                           to="/my-courses" 
@@ -177,6 +177,16 @@ function Navbar() {
                           onClick={() => setShowUserMenu(false)}
                         >
                           👨‍🏫 Quản lý khóa học
+                        </Link>
+                      )}
+
+                      {user.role === 'ADMIN' && (
+                        <Link 
+                          to="/admin/dashboard"
+                          className="block px-4 py-2 text-sm text-red-700 bg-red-50 hover:bg-red-100 font-bold"
+                          onClick={() => setShowUserMenu(false)}
+                        >
+                          🛡️ Trang Quản Trị (Admin)
                         </Link>
                       )}
 

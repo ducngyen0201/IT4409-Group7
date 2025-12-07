@@ -23,5 +23,46 @@
 
     <button type="submit">Đăng nhập</button>
   </form>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    
+        let form = document.getElementById("loginForm");
+    
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();  // chặn reload trang
+    
+            let username = document.getElementById("username").value.trim();
+            let password = document.getElementById("password").value.trim();
+            let role = document.getElementById("role").value;
+    
+            // Kiểm tra rỗng
+            if (username === "" || password === "") {
+                alert("Vui lòng nhập đủ tên đăng nhập và mật khẩu!");
+                return;
+            }
+    
+            // --------- Lưu Session giả vào localStorage ----------
+            let userData = {
+                username: username,
+                role: role,
+                isLoggedIn: true
+            };
+    
+            localStorage.setItem("online_user", JSON.stringify(userData));
+    
+            // --------- Chuyển trang theo role ----------
+            if (role === "admin") {
+                window.location.href = "admin.html";
+            } 
+            else if (role === "teacher") {
+                window.location.href = "teacher.html";
+            } 
+            else if (role === "student") {
+                window.location.href = "student.html";
+            }
+        });
+    
+    });
+    </script>
 </body>
 </html>

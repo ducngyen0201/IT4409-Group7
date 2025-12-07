@@ -18,6 +18,7 @@ const systemRoutes = require('./routes/systemRoutes');
 const materialRoutes = require('./routes/materialRoutes');
 const optionRoutes = require('./routes/optionRoutes');
 const postRoutes = require('./routes/postRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -55,6 +56,7 @@ app.use('/api', systemRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/options', optionRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ----- 5. KHỞI CHẠY SERVER -----
 app.listen(PORT, () => {

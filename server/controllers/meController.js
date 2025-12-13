@@ -29,8 +29,10 @@ exports.getMe = async (req, res) => {
     const { rows } = await db.query(query, [userId]);
 
     if (rows.length === 0) return res.status(404).json({ error: 'User không tồn tại' });
-    res.json({ user: rows[0] });
+    res.json(rows[0]); 
+
   } catch (err) {
+    console.error("Lỗi getMe:", err);
     res.status(500).json({ error: "Lỗi server" });
   }
 };

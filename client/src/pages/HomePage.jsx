@@ -45,8 +45,8 @@ function HomePage() {
 
   useEffect(() => {
     fetchCourses(); // Luôn chạy cái này
-    if (user) {
-      fetchMyCourses(); // Nếu đã login thì lấy thêm khóa học của tôi
+    if (user && user.role === 'STUDENT') {
+    fetchMyCourses(); 
     }
   }, [user]);
 

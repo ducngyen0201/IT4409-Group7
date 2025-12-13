@@ -2,9 +2,11 @@ require('dotenv').config();
 
 // ----- 1. IMPORT CÁC THƯ VIỆN -----
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const db = require('./db');
 const path = require('path');
+const { Server } = require("socket.io");
 
 const authRoutes = require('./routes/authRoutes');
 const courseRoutes = require('./routes/courseRoutes');
@@ -71,8 +73,42 @@ app.use((err, req, res, next) => {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// ----- 5. KHỞI CHẠY SERVER -----
-app.listen(PORT, () => {
-  console.log(`Server đang chạy trên cổng ${PORT}`);
-  console.log(`Chấp nhận request từ: ${process.env.CLIENT_URL || 'All sources'}`);
+const server = http.createServer(app);
+
+// 2. Khởi tạo Socket.io
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173", // URL frontend của bạn
+        methods: ["GET", "POST"]
+    }
 });
+
+// 3. Xử lý logic Socket
+io.on("connection", (socket) => {
+    // Gửi ID của chính socket đó về cho client vừa kết nối
+    socket.emit("me", socket.id);
+
+    // Khi ngắt kết nối
+    socket.on("disconnect", () => {
+        socket.broadcast.emit("callEnded");
+    });
+
+    // --- LOGIC GỌI VIDEO ---
+    
+    // A gọi cho B: A gửi tín hiệu (signalData) lên server để chuyển cho B
+    socket.on("callUser", (data) => {
+        io.to(data.userToCall).emit("callUser", { 
+            signal: data.signalData, 
+            from: data.from, 
+            name: data.name 
+        });
+    });
+
+    // B trả lời A: B gửi tín hiệu chấp nhận
+    socket.on("answerCall", (data) => {
+        io.to(data.to).emit("callAccepted", data.signal);
+    });
+});
+
+// ----- 5. KHỞI CHẠY SERVER -----
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

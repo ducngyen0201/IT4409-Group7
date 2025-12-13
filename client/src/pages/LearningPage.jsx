@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // Thêm useNavigate
 import axiosClient from '../api/axiosClient';
 import DiscussionSection from '../components/learning/DiscussionSection';
 import StudentQuizView from '../components/student/StudentQuizView';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { Video } from 'lucide-react'; // Import icon Video
 
 function LearningPage() {
   const { id: courseId } = useParams();
+  const navigate = useNavigate(); // Khởi tạo useNavigate
+
   const [lectures, setLectures] = useState([]);
   
   const [currentLecture, setCurrentLecture] = useState(null);
@@ -46,7 +49,7 @@ function LearningPage() {
 
   // Hàm xử lý khi xem hết video (Đánh dấu hoàn thành)
   const handleVideoEnded = async () => {
-    if (!currentLecture) return;
+    if (!currentLecture || currentLecture.is_completed) return; // Chỉ đánh dấu 1 lần
     try {
       const token = sessionStorage.getItem('token');
       // Gọi API cập nhật tiến độ 100%
@@ -88,45 +91,62 @@ function LearningPage() {
     setCurrentMaterial(null);
     setActiveTab('content');
   };
+  
+  // --- HÀM MỚI: CHUYỂN HƯỚNG VÀO PHÒNG LIVE ---
+  const handleJoinLive = () => {
+    // Dùng courseId làm RoomId
+    navigate(`/video-call/${courseId}`);
+  };
 
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-64px)] overflow-hidden bg-gray-900">
       
-      {/* --- CỘT TRÁI --- */}
+      {/* --- CỘT TRÁI (KHUNG XEM VIDEO/QUIZ) --- */}
       <div className="flex-1 flex flex-col min-w-0 bg-black relative">
         {activeTab === 'discussion' ? (
-           <div className="bg-white h-full overflow-y-auto">
-             <DiscussionSection lectureId={currentLecture?.id} lectureTitle={currentLecture?.title} />
-           </div>
+            <div className="bg-white h-full overflow-y-auto">
+              <DiscussionSection lectureId={currentLecture?.id} lectureTitle={currentLecture?.title} />
+            </div>
         ) : viewingQuizId ? (
-           <div className="bg-white h-full overflow-y-auto p-4">
-             <StudentQuizView quizId={viewingQuizId} />
-           </div>
+            <div className="bg-white h-full overflow-y-auto p-4">
+              <StudentQuizView quizId={viewingQuizId} />
+            </div>
         ) : currentMaterial ? (
-           <div className="flex-1 flex items-center justify-center bg-black h-full">
-             <video 
-               src={currentMaterial.url} 
-               controls 
-               className="w-full h-full object-contain"
-               autoPlay
-               key={currentMaterial.url}
-               onEnded={handleVideoEnded} // <-- Gắn sự kiện kết thúc video
-             >
-               Trình duyệt không hỗ trợ video.
-             </video>
-           </div>
+            <div className="flex-1 flex items-center justify-center bg-black h-full">
+              <video 
+                src={currentMaterial.url} 
+                controls 
+                className="w-full h-full object-contain"
+                autoPlay
+                key={currentMaterial.url}
+                onEnded={handleVideoEnded} // <-- Gắn sự kiện kết thúc video
+              >
+                Trình duyệt không hỗ trợ video.
+              </video>
+            </div>
         ) : (
-           <div className="flex items-center justify-center h-full text-gray-500">
-             Chọn nội dung bên phải để bắt đầu học.
-           </div>
+            <div className="flex items-center justify-center h-full text-gray-500">
+              Chọn nội dung bên phải để bắt đầu học.
+            </div>
         )}
       </div>
 
-      {/* --- CỘT PHẢI --- */}
+      {/* --- CỘT PHẢI (THANH NAVIGATION BÀI GIẢNG) --- */}
       <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-full shrink-0">
         
+        {/* --- NÚT LIVE STREAM MỚI (VỊ TRÍ NỔI BẬT) --- */}
+        <div className="p-3 border-b border-gray-200 bg-red-50">
+           <button
+             onClick={handleJoinLive}
+             className="w-full py-2.5 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 flex items-center justify-center gap-2 transition animate-pulse"
+           >
+             <Video size={20} /> VÀO LỚP TRỰC TUYẾN
+           </button>
+        </div>
+        {/* ------------------------------------------- */}
+
         <div className="flex border-b text-sm font-medium text-center text-gray-500 bg-gray-50">
           <button 
             className={`flex-1 p-3 ${activeTab === 'content' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`}
@@ -143,7 +163,7 @@ function LearningPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {lectures.map((lec, idx) => { // <--- LỖI CỦA BẠN LÀ THIẾU 'idx' Ở ĐÂY
+          {lectures.map((lec, idx) => {
             const isActive = currentLecture?.id === lec.id;
 
             return (
@@ -210,4 +230,4 @@ function LearningPage() {
   );
 }
 
-export default LearningPage;  
+export default LearningPage;

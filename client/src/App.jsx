@@ -13,6 +13,7 @@ import MyCoursesPage from './pages/student/MyCoursesPage';
 import TeacherQuizEditor from './pages/teacher/TeacherQuizEditor';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
+import VideoCallPage from './pages/VideoCallPage';
 
 function App() {
   return (
@@ -28,6 +29,12 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute roles={['STUDENT', 'TEACHER', 'ADMIN']}>
               <ProfilePage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/video-call/:roomId?" element={
+            <ProtectedRoute roles={['STUDENT', 'TEACHER', 'ADMIN']}>
+              <VideoCallPage />
             </ProtectedRoute>
           } />
 

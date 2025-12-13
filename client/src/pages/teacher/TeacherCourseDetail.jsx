@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react'; // Xóa useNavigate khỏi đây
+import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate đúng cách
 import axiosClient from '../../api/axiosClient';
 import LectureManager from '../../components/teacher/LectureManager';
 import TeacherStats from '../../components/teacher/TeacherStats';
 import CustomModal from '../../components/CustomModal';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { Video } from 'lucide-react';
 
 function TeacherCourseDetail() {
   const { id } = useParams();
+  const navigate = useNavigate(); // Khởi tạo useNavigate ở đây
+
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   
@@ -32,7 +35,9 @@ function TeacherCourseDetail() {
       const response = await axiosClient.get(`/api/courses/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      const courseData = response.data.course;
+      // Lưu ý: Sửa lại để lấy data trực tiếp (do backend cũ có thể bọc trong key 'course')
+      const courseData = response.data.course || response.data; 
+      
       setCourse(courseData);
       setFormData({
         title: courseData.title,
@@ -89,6 +94,12 @@ function TeacherCourseDetail() {
     });
   };
 
+  // --- HÀM MỚI: BẮT ĐẦU LIVE STREAM ---
+  const handleStartLive = () => {
+    // Chuyển hướng đến trang Video Call, dùng Course ID làm Room ID
+    navigate(`/video-call/${id}`);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!course) return <div className="p-8 text-center">Không tìm thấy khóa học.</div>;
 
@@ -102,7 +113,17 @@ function TeacherCourseDetail() {
           <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
           <p className="text-gray-500">Mã: {course.code}</p>
         </div>
+        
         <div className="flex items-center space-x-3">
+          {/* NÚT BẮT ĐẦU LIVESTREAM (NỔI BẬT) */}
+          <button 
+            onClick={handleStartLive} 
+            className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700 font-bold shadow-lg shadow-red-200 flex items-center gap-2 transition transform hover:scale-[1.02]"
+          >
+            <Video size={20} /> Bắt đầu Livestream
+          </button>
+          {/* ---------------------------------- */}
+          
           <span className={`px-3 py-1 text-sm font-bold rounded-full 
             ${course.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
               course.status === 'PENDING_REVIEW' ? 'bg-orange-100 text-orange-800' : 

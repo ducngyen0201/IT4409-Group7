@@ -1,6 +1,6 @@
 // file: client/src/pages/LoginPage.jsx
 import React, { useState, useContext } from 'react';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 
@@ -28,8 +28,8 @@ function LoginPage() {
 
     try {
       // 1. Gọi API login của backend
-      const response = await axios.post(
-        'http://localhost:5000/api/auth/login',
+      const response = await axiosClient.post(
+        '/api/auth/login',
         formData
       );
 

@@ -1,6 +1,6 @@
 // file: client/src/pages/RegisterPage.jsx
 import React, { useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
@@ -27,8 +27,8 @@ function RegisterPage() {
 
     try {
       // 4. Gọi API backend (chạy trên cổng 5000)
-      const response = await axios.post(
-        'http://localhost:5000/api/auth/register', 
+      const response = await axiosClient.post(
+        '/api/auth/register', 
         formData
       );
 

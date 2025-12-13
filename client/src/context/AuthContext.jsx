@@ -1,5 +1,8 @@
 import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
+
+import axiosClient from '../api/axiosClient';
+
+
 
 // Tạo Context
 export const AuthContext = createContext();
@@ -16,7 +19,8 @@ export const AuthProvider = ({ children }) => {
         try {
           // Gọi API /me để lấy thông tin user từ token
           // (Lưu ý: Bạn cần chắc chắn API /api/me đã hoạt động ở Backend)
-          const response = await axios.get('http://localhost:5000/api/me', {
+
+          const response = await axiosClient.get('/api/me', {
             headers: { Authorization: `Bearer ${token}` },
           });
           setUser(response.data);
@@ -27,7 +31,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
       setLoading(false);
-    };
+    }
 
     loadUser();
   }, []);

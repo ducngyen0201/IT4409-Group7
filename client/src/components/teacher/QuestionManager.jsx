@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import CustomModal from '../CustomModal';
 
 function QuestionManager({ quizId }) {
@@ -17,7 +17,7 @@ function QuestionManager({ quizId }) {
   const fetchQuestions = async () => {
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/quizzes/${quizId}/questions`, {
+      const res = await axiosClient.get(`/api/quizzes/${quizId}/questions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setQuestions(res.data);

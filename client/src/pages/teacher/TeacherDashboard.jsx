@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -11,7 +11,7 @@ function TeacherDashboard() {
     const fetchMyCourses = async () => {
       try {
         const token = sessionStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/me/teaching', {
+        const response = await axiosClient.get('/api/me/teaching', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setCourses(response.data);

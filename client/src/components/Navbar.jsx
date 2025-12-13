@@ -1,36 +1,53 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
-import { formatDateTime } from '../utils/dateUtils';
+import axiosClient from '../api/axiosClient';
+import { Bell, Search, LogOut, BookOpen, Settings, LayoutDashboard, Menu as MenuIcon, X, ShieldAlert } from 'lucide-react';
 
 function Navbar() {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // State quản lý hiển thị menu
+  // State hiển thị
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotiMenu, setShowNotiMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   
-  // State dữ liệu thông báo
+  // Vẫn giữ state search cho Mobile Menu (nếu cần)
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // State xử lý lỗi ảnh
+  const [imageError, setImageError] = useState(false);
+
+  // Data thông báo
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Ref để xử lý click ra ngoài thì đóng menu
   const userMenuRef = useRef(null);
   const notiMenuRef = useRef(null);
 
-  // 1. Lấy danh sách thông báo khi đăng nhập
+  // Reset lỗi ảnh khi user thay đổi
+  useEffect(() => {
+    setImageError(false);
+  }, [user?.avatar]);
+
+  // 1. Hiệu ứng cuộn trang
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // 2. Fetch thông báo
   useEffect(() => {
     if (user) {
       const fetchNotifications = async () => {
         try {
-          const token = sessionStorage.getItem('token');
-          const res = await axios.get('http://localhost:5000/api/me/notifications', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await axiosClient.get('/api/me/notifications');
           setNotifications(res.data);
-          // Đếm số thông báo chưa đọc (read_at là null)
           const count = res.data.filter(n => !n.read_at).length;
           setUnreadCount(count);
         } catch (err) {
@@ -41,184 +58,202 @@ function Navbar() {
     }
   }, [user]);
 
-  // 2. Xử lý click ra ngoài để đóng menu
+  // 3. Click outside handler
   useEffect(() => {
     function handleClickOutside(event) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-      if (notiMenuRef.current && !notiMenuRef.current.contains(event.target)) {
-        setShowNotiMenu(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) setShowUserMenu(false);
+      if (notiMenuRef.current && !notiMenuRef.current.contains(event.target)) setShowNotiMenu(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 3. Xử lý khi đọc thông báo
-  const handleReadNotification = async (noti) => {
-    if (!noti.read_at) {
-      try {
-        const token = sessionStorage.getItem('token');
-        await axios.post(`http://localhost:5000/api/me/notifications/${noti.id}/read`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        // Cập nhật lại state local
-        setNotifications(prev => prev.map(n => n.id === noti.id ? { ...n, read_at: new Date() } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      } catch (err) {
-        console.error(err);
-      }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/all-courses?search=${encodeURIComponent(searchTerm)}`);
+      setShowMobileMenu(false);
+      setSearchTerm('');
     }
-    setShowNotiMenu(false);
+  };
+
+  // --- HÀM XỬ LÝ URL ẢNH ---
+  const getAvatarUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${apiUrl}${path}`;
+  };
+
+  // --- HÀM RENDER AVATAR ---
+  const renderAvatar = (sizeClasses = "w-10 h-10", textSize = "text-sm") => {
+    if (user?.avatar && !imageError) {
+      return (
+        <img 
+          src={getAvatarUrl(user.avatar)} 
+          alt="Avatar" 
+          className={`${sizeClasses} rounded-full object-cover border border-gray-200 shadow-sm`}
+          onError={(e) => {
+            setImageError(true);
+            e.target.style.display = 'none'; 
+          }}
+        />
+      );
+    }
+    return (
+      <div className={`${sizeClasses} rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold ${textSize} uppercase shadow-sm`}>
+        {user?.full_name ? user.full_name.charAt(0) : 'U'}
+      </div>
+    );
   };
 
   return (
-    <nav className="bg-white shadow-md z-50 relative">
-      <div className="container px-4 mx-auto">
-        <div className="flex justify-between items-center h-16">
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md shadow-md py-2' : 'bg-white py-3 border-b border-gray-100'}`}>
+      <div className="container mx-auto px-4 lg:px-8">
+        <div className="flex justify-between items-center">
           
-          {/* --- LOGO --- */}
-          <Link to="/" className="text-xl font-bold text-indigo-600 flex items-center gap-2">
-            <span>🎓</span> E-Learning
-          </Link>
+          {/* --- LEFT: LOGO (Chỉ còn mỗi Logo) --- */}
+          <div className="flex items-center">
+            <Link to="/" className="text-2xl font-extrabold text-indigo-600 flex items-center gap-2 tracking-tight">
+              <span className="text-3xl">🎓</span> E-Learning
+            </Link>
+          </div>
 
-          {/* --- MENU BÊN PHẢI --- */}
-          <div className="flex items-center space-x-6">
+          {/* --- MIDDLE: SEARCH BAR ĐÃ BỊ XÓA --- */}
+
+          {/* --- RIGHT: ACTIONS --- */}
+          <div className="flex items-center gap-3 lg:gap-5">
             
+            {/* Nút Mobile Menu (Hiện khi màn hình nhỏ) */}
+            <button 
+              className="lg:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+            >
+              {showMobileMenu ? <X size={24} /> : <MenuIcon size={24} />}
+            </button>
+
             {user ? (
               <>
-                {/* 1. ICON CHUÔNG THÔNG BÁO */}
-                <div className="relative" ref={notiMenuRef}>
-                  <button 
-                    onClick={() => setShowNotiMenu(!showNotiMenu)}
-                    className="relative p-1 text-gray-600 hover:text-indigo-600 focus:outline-none"
-                  >
-                    {/* SVG Icon Chuông */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    
-                    {/* Badge số lượng chưa đọc */}
+                {/* 1. NOTIFICATIONS */}
+                <div className="relative hidden md:block" ref={notiMenuRef}>
+                  <button onClick={() => setShowNotiMenu(!showNotiMenu)} className="relative p-2 text-gray-500 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition">
+                    <Bell size={20} />
                     {unreadCount > 0 && (
-                      <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full">
-                        {unreadCount}
-                      </span>
+                      <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full"></span>
                     )}
                   </button>
-
-                  {/* Dropdown Thông báo */}
                   {showNotiMenu && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 border ring-1 ring-black ring-opacity-5 max-h-96 overflow-y-auto">
-                      <div className="px-4 py-2 border-b text-sm font-semibold text-gray-700">Thông báo</div>
-                      {notifications.length === 0 ? (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">Không có thông báo mới.</div>
-                      ) : (
-                        notifications.map(noti => (
-                          <div 
-                            key={noti.id}
-                            onClick={() => handleReadNotification(noti)}
-                            className={`px-4 py-3 text-sm border-b hover:bg-gray-50 cursor-pointer ${!noti.read_at ? 'bg-indigo-50' : ''}`}
-                          >
-                            <p className="text-gray-800">{JSON.parse(noti.payload_json).message || 'Thông báo mới'}</p>
-                            <span className="text-xs text-gray-500">{new Date(noti.created_at).toLocaleDateString()}</span>
-                          </div>
-                        ))
-                      )}
+                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 animate-fadeIn origin-top-right z-50">
+                       <div className="p-4 text-center text-sm text-gray-500">Chức năng thông báo đang phát triển</div>
                     </div>
                   )}
                 </div>
 
-                {/* 2. AVATAR USER */}
+                {/* 2. USER DROPDOWN */}
                 <div className="relative" ref={userMenuRef}>
                   <button 
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center focus:outline-none"
+                    className="flex items-center gap-2 focus:outline-none group"
                   >
-                    {/* Avatar hình tròn (Dùng ảnh placeholder nếu chưa có) */}
-                    <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold overflow-hidden border-2 border-white shadow">
-                      {/* Nếu user có avatar_url thì hiện img, ko thì hiện chữ cái đầu */}
-                      {user.full_name ? user.full_name.charAt(0).toUpperCase() : 'U'}
+                    <div className="group-hover:ring-2 ring-indigo-200 rounded-full transition p-0.5">
+                      {renderAvatar("w-9 h-9", "text-sm")}
+                    </div>
+                    
+                    <div className="hidden md:block text-left">
+                       <p className="text-sm font-bold text-gray-700 leading-none group-hover:text-indigo-600 transition">{user.full_name}</p>
+                       <p className="text-[10px] text-gray-500 font-medium uppercase mt-0.5">
+                         {user.role === 'ADMIN' ? 'Quản trị' : user.role === 'TEACHER' ? 'Giảng viên' : 'Học viên'}
+                       </p>
                     </div>
                   </button>
 
-                  {/* Dropdown Menu User */}
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-xl py-1 border ring-1 ring-black ring-opacity-5">
-                      {/* Header: Tên & Email */}
-                      <div className="px-4 py-3 border-b bg-gray-50">
+                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 animate-fadeIn origin-top-right overflow-hidden z-50">
+                      <div className="px-5 py-4 bg-gray-50/50 border-b border-gray-100">
                         <p className="text-sm font-bold text-gray-900 truncate">{user.full_name}</p>
                         <p className="text-xs text-gray-500 truncate">{user.email}</p>
                       </div>
 
-                      {/* Các mục menu */}
-                      <Link 
-                        to="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
-                        onClick={() => setShowUserMenu(false)}
-                      >
-                        👤 Hồ sơ cá nhân
-                      </Link>
-
-                      {/* Link khóa học */}
-                      {user.role === 'STUDENT' && (
-                        <Link 
-                          to="/my-courses" 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          📚 Khóa học của bạn
+                      <div className="py-2">
+                        <Link to="/profile" className="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition" onClick={() => setShowUserMenu(false)}>
+                          <Settings size={16} /> Hồ sơ cá nhân
                         </Link>
-                      )}
-                      {(user.role === 'TEACHER' || user.role === 'ADMIN') && (
-                        <Link 
-                          to="/manage/courses" 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          👨‍🏫 Quản lý khóa học
-                        </Link>
-                      )}
+                        
+                        {user.role === 'STUDENT' && (
+                          <Link to="/my-courses" className="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition" onClick={() => setShowUserMenu(false)}>
+                            <BookOpen size={16} /> Khóa học của tôi
+                          </Link>
+                        )}
+                        
+                        {(user.role === 'TEACHER' || user.role === 'ADMIN') && (
+                          <Link to="/manage/courses" className="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition" onClick={() => setShowUserMenu(false)}>
+                            <LayoutDashboard size={16} /> Quản lý khóa học
+                          </Link>
+                        )}
 
-                      {user.role === 'ADMIN' && (
-                        <Link 
-                          to="/admin/dashboard"
-                          className="block px-4 py-2 text-sm text-red-700 bg-red-50 hover:bg-red-100 font-bold"
-                          onClick={() => setShowUserMenu(false)}
-                        >
-                          🛡️ Trang Quản Trị (Admin)
-                        </Link>
-                      )}
+                        {user.role === 'ADMIN' && (
+                          <Link to="/admin/dashboard" className="flex items-center gap-3 px-5 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition mt-1" onClick={() => setShowUserMenu(false)}>
+                            <ShieldAlert size={16} /> Trang Quản Trị
+                          </Link>
+                        )}
+                      </div>
 
-                      <div className="border-t my-1"></div>
-
-                      <button
-                        onClick={logout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        🚪 Đăng xuất
-                      </button>
+                      <div className="border-t border-gray-100 my-1 pt-1">
+                        <button onClick={logout} className="w-full flex items-center gap-3 px-5 py-2.5 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 transition">
+                          <LogOut size={16} /> Đăng xuất
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
               </>
             ) : (
-              // --- CHƯA ĐĂNG NHẬP ---
-              <div className="flex items-center space-x-4">
-                <Link to="/login" className="text-gray-600 hover:text-indigo-600 font-medium">
-                  Đăng nhập
-                </Link>
-                <Link
-                  to="/register"
-                  className="px-5 py-2 text-white bg-indigo-600 rounded-full hover:bg-indigo-700 font-medium shadow-md transition"
-                >
-                  Đăng ký
-                </Link>
+              <div className="flex items-center gap-3">
+                <Link to="/login" className="hidden md:block text-gray-600 font-semibold hover:text-indigo-600 transition">Đăng nhập</Link>
+                <Link to="/register" className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-full hover:bg-indigo-700 shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition transform hover:-translate-y-0.5">Đăng ký</Link>
               </div>
             )}
           </div>
         </div>
       </div>
+      
+      {/* --- MOBILE MENU (Giữ lại để điện thoại vẫn dùng được) --- */}
+      {showMobileMenu && (
+         <div className="lg:hidden absolute top-full left-0 w-full bg-white border-t border-gray-100 shadow-xl py-4 px-4 flex flex-col gap-4 animate-slideDown z-40">
+           {/* Mobile Search */}
+           <form onSubmit={handleSearch} className="relative">
+             <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+             <input 
+                type="text" 
+                placeholder="Tìm kiếm..." 
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-100 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+             />
+           </form>
+
+           {/* Mobile Links */}
+           <div className="flex flex-col gap-2 text-gray-700 font-medium border-b border-gray-100 pb-4">
+             {user && (
+              <Link to="/all-courses" className="py-2 hover:text-indigo-600" onClick={() => setShowMobileMenu(false)}>
+                Tất cả khóa học
+              </Link>
+             )}
+             <Link to="/instructors" className="py-2 hover:text-indigo-600" onClick={() => setShowMobileMenu(false)}>
+                Giảng viên
+             </Link>
+           </div>
+           
+           {!user && (
+             <div className="flex flex-col gap-3">
+               <Link to="/login" className="w-full text-center py-2 border border-gray-300 rounded-lg font-bold text-gray-700" onClick={() => setShowMobileMenu(false)}>Đăng nhập</Link>
+               <Link to="/register" className="w-full text-center py-2 bg-indigo-600 text-white rounded-lg font-bold" onClick={() => setShowMobileMenu(false)}>Đăng ký</Link>
+             </div>
+           )}
+         </div>
+      )}
     </nav>
   );
 }

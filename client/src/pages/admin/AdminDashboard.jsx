@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import CustomModal from '../../components/CustomModal';
 import { formatDateTime } from '../../utils/dateUtils';
@@ -34,7 +34,7 @@ function AdminDashboard() {
     try {
       setLoading(true);
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/admin/courses', {
+      const res = await axiosClient.get('/api/admin/courses', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCourses(res.data);
@@ -64,7 +64,7 @@ function AdminDashboard() {
         onConfirm: async () => {
           try {
             const token = sessionStorage.getItem('token');
-            await axios.patch(`http://localhost:5000/api/admin/courses/${courseId}/status`, 
+            await axiosClient.patch(`/api/admin/courses/${courseId}/status`, 
               { status: 'APPROVED' },
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -94,7 +94,7 @@ function AdminDashboard() {
 
           try {
             const token = sessionStorage.getItem('token');
-            await axios.patch(`http://localhost:5000/api/admin/courses/${courseId}/status`, 
+            await axiosClient.patch(`/api/admin/courses/${courseId}/status`, 
               { 
                 status: 'DRAFT',
                 reason: reason // Gửi lý do lên server
@@ -118,7 +118,7 @@ function AdminDashboard() {
 
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5000/api/courses/${courseId}/lectures`, {
+      const res = await axiosClient.get(`/api/courses/${courseId}/lectures`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

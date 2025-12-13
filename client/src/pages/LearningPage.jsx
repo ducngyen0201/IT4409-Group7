@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import DiscussionSection from '../components/learning/DiscussionSection';
 import StudentQuizView from '../components/student/StudentQuizView';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -21,7 +21,7 @@ function LearningPage() {
     const fetchLectures = async () => {
       try {
         const token = sessionStorage.getItem('token');
-        const response = await axios.get(`http://localhost:5000/api/courses/${courseId}/lectures`, {
+        const response = await axiosClient.get(`/api/courses/${courseId}/lectures`, {
            headers: { Authorization: `Bearer ${token}` }
         });
         const data = response.data;
@@ -50,7 +50,7 @@ function LearningPage() {
     try {
       const token = sessionStorage.getItem('token');
       // Gọi API cập nhật tiến độ 100%
-      await axios.post(`http://localhost:5000/api/lectures/${currentLecture.id}/progress`, 
+      await axiosClient.post(`/api/lectures/${currentLecture.id}/progress`, 
         { progress_percent: 100 },
         { headers: { Authorization: `Bearer ${token}` } }
       );

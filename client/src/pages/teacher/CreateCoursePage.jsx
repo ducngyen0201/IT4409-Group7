@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { useNavigate, Link } from 'react-router-dom';
 
 function CreateCoursePage() {
@@ -29,8 +29,8 @@ function CreateCoursePage() {
       
       // Gọi API tạo khóa học
       // (Backend: POST /api/courses)
-      await axios.post(
-        'http://localhost:5000/api/courses',
+      await axiosClient.post(
+        '/api/courses',
         formData,
         {
           headers: { Authorization: `Bearer ${token}` },

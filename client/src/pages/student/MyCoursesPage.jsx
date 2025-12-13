@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { Link } from 'react-router-dom';
 
 function MyCoursesPage() {
@@ -10,7 +10,7 @@ function MyCoursesPage() {
     const fetchMyCourses = async () => {
       try {
         const token = sessionStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/me/enrollments', {
+        const response = await axiosClient.get('/api/me/enrollments', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setEnrollments(response.data);

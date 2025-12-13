@@ -1,6 +1,6 @@
 // file: client/src/pages/RegisterPage.jsx
 import React, { useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 
 function RegisterPage() {
@@ -27,8 +27,8 @@ function RegisterPage() {
 
     try {
       // 4. Gọi API backend (chạy trên cổng 5000)
-      const response = await axios.post(
-        'http://localhost:5000/api/auth/register', 
+      const response = await axiosClient.post(
+        '/api/auth/register', 
         formData
       );
 
@@ -44,7 +44,7 @@ function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center h-[calc(100vh-64px)] bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
         <h2 className="text-2xl font-bold text-center text-gray-900">
           Tạo tài khoản mới

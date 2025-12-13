@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import { AuthContext } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -20,13 +20,13 @@ function CourseDetailPage() {
         setLoading(true);
         const token = sessionStorage.getItem('token');
 
-        const courseRequest = axios.get(`http://localhost:5000/api/courses/${id}`, {
+        const courseRequest = axiosClient.get(`/api/courses/${id}`, {
            headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
 
         // Chỉ gọi API enrollments nếu là STUDENT
         const enrollmentRequest = (user && user.role === 'STUDENT') 
-          ? axios.get('http://localhost:5000/api/me/enrollments', {
+          ? axiosClient.get('/api/me/enrollments', {
               headers: { Authorization: `Bearer ${token}` }
             })
           : Promise.resolve(null); // Nếu không phải student, trả về null ngay
@@ -66,8 +66,8 @@ function CourseDetailPage() {
     try {
       const token = sessionStorage.getItem('token');
       // POST /api/courses/:id/enroll
-      await axios.post(
-        `http://localhost:5000/api/courses/${id}/enroll`,
+      await axiosClient.post(
+        `/api/courses/${id}/enroll`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

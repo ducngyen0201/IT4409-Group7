@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 
 function StudentQuizView({ quizId }) {
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ function StudentQuizView({ quizId }) {
     setLoading(true);
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/quizzes/${quizId}/attempts`, {}, {
+      const res = await axiosClient.post(`/api/quizzes/${quizId}/attempts`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import QuestionManager from '../../components/teacher/QuestionManager';
 import { formatForInput } from '../../utils/dateUtils';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -33,13 +33,13 @@ function TeacherQuizEditor() {
 
         if (quizId) {
           // TRƯỜNG HỢP 1: SỬA (Có quizId trên URL)
-          res = await axios.get(`http://localhost:5000/api/quizzes/${quizId}`, {
+          res = await axiosClient.get(`/api/quizzes/${quizId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
         } else if (lectureId) {
           // TRƯỜNG HỢP 2: TẠO MỚI (Có lectureId trên URL)
           // Thử tìm xem lecture này đã có quiz chưa
-          res = await axios.get(`http://localhost:5000/api/lectures/${lectureId}/quiz`, {
+          res = await axiosClient.get(`/api/lectures/${lectureId}/quiz`, {
             headers: { Authorization: `Bearer ${token}` }
           });
         }
@@ -58,7 +58,7 @@ function TeacherQuizEditor() {
           });
         }
       } catch (err) {
-        // Nếu lỗi 404 và đang ở mode lectureId -> Nghĩa là chưa có quiz -> Không sao
+        // Nếu lỗi 404 và đang ở mode lectureId -> Nghĩa là chưa có quiz
         if (err.response && err.response.status === 404 && lectureId) {
           // Giữ form trống để tạo mới
         } else {
@@ -86,7 +86,7 @@ function TeacherQuizEditor() {
     try {
       if (quiz) {
         // Cập nhật (PATCH)
-        await axios.patch(`http://localhost:5000/api/quizzes/${quiz.id}`, payload, {
+        await axiosClient.patch(`/api/quizzes/${quiz.id}`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert("Đã cập nhật thành công!");
@@ -96,7 +96,7 @@ function TeacherQuizEditor() {
           alert("Lỗi: Không tìm thấy ID bài giảng để tạo Quiz.");
           return;
         }
-        const res = await axios.post(`http://localhost:5000/api/lectures/${lectureId}/quiz`, payload, {
+        const res = await axiosClient.post(`/api/lectures/${lectureId}/quiz`, payload, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setQuiz(res.data);
@@ -116,7 +116,7 @@ function TeacherQuizEditor() {
     if (!window.confirm("Xuất bản ngay?")) return;
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/quizzes/${quiz.id}/publish`, {}, {
+      await axiosClient.post(`/api/quizzes/${quiz.id}/publish`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setQuiz({ ...quiz, is_published: true });

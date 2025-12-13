@@ -10,4 +10,11 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
+  <script>
+  // Polyfill cho simple-peer hoạt động trên trình duyệt hiện đại
+  window.global = window;
+  window.process = {
+    env: { DEBUG: undefined },
+  };
+  </script>
 </html>

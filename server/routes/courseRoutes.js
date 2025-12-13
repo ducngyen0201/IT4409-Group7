@@ -7,48 +7,65 @@ const { protect, isTeacher, isStudent, isAdmin, identifyUser } = require('../mid
 const instructorController = require('../controllers/instructorController');
 const progressController = require('../controllers/progressController');
 
-//STT 10
+// --- 1. CÁC ROUTE KHÔNG CÓ THAM SỐ ID (STATIC ROUTES) ---
+// Phải đặt lên trên cùng để không bị nhầm là ID
+
+// STT 10: Tạo khóa học
 router.post('/', protect, isTeacher, courseController.createCourse);
 
-//STT 9
+// STT 9: Lấy danh sách khóa học
 router.get('/', courseController.getAllPublishedCourses);
 
-//STT 11
-router.get('/:id', identifyUser, courseController.getCourseDetails);
+// [QUAN TRỌNG] Thêm route này nếu frontend bạn đang gọi /api/courses/public
+// Nếu bạn chưa có hàm getPublicCourses, hãy dùng hàm getAllPublishedCourses tạm
+router.get('/public', courseController.getAllPublishedCourses); 
 
-//STT 12
+
+// --- 2. CÁC ROUTE CÓ THAM SỐ ID (:id) ---
+// (Các route con của :id như /:id/enroll đặt trước hay sau /:id đều được, 
+// nhưng thói quen tốt là đặt route lấy chi tiết /:id ở cuối nhóm GET)
+
+// STT 12: Cập nhật khóa học
 router.patch('/:id', protect, isTeacher, courseController.updateCourse);
 
-//STT 26
-router.post('/:id/lectures',protect,isTeacher,lectureController.createLecture);
+// STT 26: Tạo bài giảng
+router.post('/:id/lectures', protect, isTeacher, lectureController.createLecture);
 
-//STT 13
+// STT 13: Yêu cầu review
 router.post('/:id/request-review', protect, isTeacher, courseController.requestCourseReview);
 
-//STT 19
-router.post('/:id/enroll',protect,isStudent,courseController.requestEnrollment);
+// STT 19: Đăng ký học
+router.post('/:id/enroll', protect, isStudent, courseController.requestEnrollment);
 
-//STT 14
+// STT 14: Duyệt khóa học (Admin)
 router.post('/:id/approve', protect, isAdmin, courseController.approveCourse);
 
-//STT 15
+// STT 15: Từ chối khóa học (Admin)
 router.post('/:id/reject', protect, isAdmin, courseController.rejectCourse);
 
-//STT 16
+// STT 16: Lấy danh sách giảng viên
 router.get('/:id/instructors', protect, instructorController.getInstructors);
 
-//STT 17
+// STT 17: Thêm giảng viên
 router.post('/:id/instructors', protect, isTeacher, instructorController.addInstructor);
 
-//STT 18
+// STT 18: Xóa giảng viên
 router.delete('/:id/instructors/:userId', protect, isTeacher, instructorController.removeInstructor);
 
-//STT 25
+// STT 25: Lấy bài giảng
 router.get('/:id/lectures', identifyUser, lectureController.getLecturesByCourse);
 
-//STT 55
+// STT 55: Lấy tiến độ
 router.get('/:id/progress', protect, isTeacher, progressController.getCourseProgressForTeacher);
 
+// Thống kê (Teacher)
+router.get('/:id/stats', protect, isTeacher, courseController.getCourseStats);
+
+// Route con: Enrollments
 router.use('/:id/enrollments', enrollmentRoutes);
+
+// --- [SỬA LẠI VỊ TRÍ] STT 11: Lấy chi tiết khóa học ---
+// Đặt cái này xuống dưới cùng của nhóm GET để tránh nó "ăn tranh" các từ khóa như 'public', 'search'...
+router.get('/:id', identifyUser, courseController.getCourseDetails);
 
 module.exports = router;

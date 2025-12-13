@@ -186,12 +186,6 @@ function Navbar() {
                             <BookOpen size={16} /> Khóa học của tôi
                           </Link>
                         )}
-                        
-                        {(user.role === 'TEACHER' || user.role === 'ADMIN') && (
-                          <Link to="/manage/courses" className="flex items-center gap-3 px-5 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition" onClick={() => setShowUserMenu(false)}>
-                            <LayoutDashboard size={16} /> Quản lý khóa học
-                          </Link>
-                        )}
 
                         {user.role === 'ADMIN' && (
                           <Link to="/admin/dashboard" className="flex items-center gap-3 px-5 py-2.5 text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition mt-1" onClick={() => setShowUserMenu(false)}>

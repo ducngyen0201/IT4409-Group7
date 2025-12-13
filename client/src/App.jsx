@@ -5,7 +5,6 @@ import LoginPage from './pages/LoginPage';
 import HomePage from './pages/HomePage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
 import CreateCoursePage from './pages/teacher/CreateCoursePage';
 import TeacherCourseDetail from './pages/teacher/TeacherCourseDetail';
 import LearningPage from './pages/LearningPage';
@@ -19,7 +18,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <div className="pt-20"> 
+      <div className="pt-16"> 
         <Routes>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -44,15 +43,6 @@ function App() {
             element={
               <ProtectedRoute roles={['ADMIN']}>
                 <AdminDashboard />
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/manage/courses" 
-            element={
-              <ProtectedRoute roles={['TEACHER', 'ADMIN']}>
-                <TeacherDashboard />
               </ProtectedRoute>
             } 
           />

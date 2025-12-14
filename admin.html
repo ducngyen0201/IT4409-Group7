@@ -3,23 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <title>Trang quản trị</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../css/style.css">
 </head>
+
 <body>
+
+<header>
   <h1>Quản lý hệ thống</h1>
+  <p>Xin chào Admin: <strong><span id="currentUser"></span></strong></p>
+  <button onclick="logout()">Đăng xuất</button>
+
   <nav>
-    <a href="webstudyon.html">Trang chủ</a> |
+    <a href="../index.html">Trang chủ</a> |
     <a href="admin.html">Trang quản trị</a>
   </nav>
+</header>
 
-  <section>
-    <h2>Chức năng dành cho Admin</h2>
-    <ul>
-      <li>Cung cấp tài khoản giáo viên</li>
-      <li>Quản lý hệ thống người dùng</li>
-      <li>Duyệt các khóa học mới</li>
-      <li>Xem báo cáo thống kê</li>
-    </ul>
-  </section>
+<section>
+  <h2>Chức năng dành cho Admin</h2>
+  <ul>
+    <li>Cung cấp tài khoản giáo viên</li>
+    <li>Quản lý hệ thống người dùng</li>
+    <li>Xem báo cáo thống kê</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Duyệt khóa học mới</h2>
+  <ul id="pendingCourses">
+    <li>
+      Lập trình C cơ bản
+      <button onclick="approveCourse(this)">Duyệt</button>
+    </li>
+    <li>
+      Toán rời rạc
+      <button onclick="approveCourse(this)">Duyệt</button>
+    </li>
+  </ul>
+</section>
+
+<!-- ================= JS NHÚNG TRỰC TIẾP ================= -->
+<script>
+  // ===== KIỂM TRA ĐĂNG NHẬP ADMIN =====
+  const session = JSON.parse(localStorage.getItem("online_user"));
+
+  if (!session || session.role !== "admin") {
+    alert("Bạn không có quyền truy cập trang này!");
+    window.location.href = "login.html";
+  }
+
+  // Hiển thị tên admin
+  document.getElementById("currentUser").textContent = session.username;
+
+  // Duyệt khóa học
+  function approveCourse(button) {
+    const li = button.parentElement;
+    li.innerHTML += " ✔ Đã duyệt";
+    button.remove();
+  }
+
+  // Đăng xuất
+  function logout() {
+    localStorage.removeItem("online_user");
+    window.location.href = "login.html";
+  }
+</script>
+
 </body>
 </html>

@@ -6,22 +6,127 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
   <h1>Khu vực dành cho Giáo viên</h1>
+
   <nav>
     <a href="webstudyon.html">Trang chủ</a> |
-    <a href="teacher.html">Trang giáo viên</a>
+    <a href="teacher.html">Trang giáo viên</a> |
+    <a href="login.html">Đăng xuất</a>
   </nav>
 
+  <hr>
+
+  <!-- THÔNG TIN GIÁO VIÊN -->
   <section>
-    <h2>Chức năng của Giáo viên</h2>
+    <h2>👨‍🏫 Thông tin giáo viên</h2>
+    <p><strong>Họ tên:</strong> Trần Văn B</p>
+    <p><strong>Mã giáo viên:</strong> GV001</p>
+    <p><strong>Email:</strong> teacher@email.com</p>
+    <p><strong>Chuyên môn:</strong> Công nghệ thông tin</p>
+  </section>
+
+  <hr>
+
+  <!-- KHÓA HỌC ĐANG GIẢNG DẠY -->
+  <section>
+    <h2>📘 Khóa học đang giảng dạy</h2>
     <ul>
-      <li>Yêu cầu tạo khóa học</li>
-      <li>Tải tài liệu bài giảng</li>
-      <li>Tạo bài kiểm tra (Quiz)</li>
-      <li>Theo dõi tiến độ học tập của học sinh</li>
-      <li>Xem điểm và phản hồi</li>
-      <li>Thảo luận trong bài giảng</li>
+      <li>
+        <strong>Lập trình Web cơ bản</strong><br>
+        Số học sinh: 35 <br>
+        Trạng thái: Đang hoạt động
+      </li>
+      <br>
+      <li>
+        <strong>Cơ sở dữ liệu</strong><br>
+        Số học sinh: 28 <br>
+        Trạng thái: Chờ duyệt
+      </li>
     </ul>
   </section>
+
+  <hr>
+
+  <!-- TẠO KHÓA HỌC -->
+  <section>
+    <h2>➕ Yêu cầu tạo khóa học mới</h2>
+    <form>
+      <label>Tên khóa học:</label><br>
+      <input type="text" placeholder="Nhập tên khóa học"><br><br>
+
+      <label>Mô tả khóa học:</label><br>
+      <textarea rows="4" cols="50" placeholder="Mô tả nội dung khóa học"></textarea><br><br>
+
+      <button type="submit">Gửi yêu cầu</button>
+    </form>
+  </section>
+
+  <hr>
+
+  <!-- TÀI LIỆU -->
+  <section>
+    <h2>📂 Tài liệu bài giảng</h2>
+    <ul>
+      <li>Bài 1: Giới thiệu Web (PDF)</li>
+      <li>Bài 2: HTML cơ bản (Slide)</li>
+      <li>Bài 3: CSS (Video)</li>
+    </ul>
+
+    <button>Tải tài liệu mới</button>
+  </section>
+
+  <hr>
+
+  <!-- QUIZ -->
+  <section>
+    <h2>📝 Quản lý bài kiểm tra (Quiz)</h2>
+    <ul>
+      <li>Quiz HTML – 20 câu</li>
+      <li>Quiz CSS – 15 câu</li>
+    </ul>
+
+    <button>Tạo Quiz mới</button>
+  </section>
+
+  <hr>
+
+  <!-- THEO DÕI TIẾN ĐỘ -->
+  <section>
+    <h2>📊 Theo dõi tiến độ học sinh</h2>
+    <table border="1" cellpadding="8">
+      <tr>
+        <th>Tên học sinh</th>
+        <th>Khóa học</th>
+        <th>Tiến độ</th>
+        <th>Điểm trung bình</th>
+      </tr>
+      <tr>
+        <td>Nguyễn Văn A</td>
+        <td>Lập trình Web</td>
+        <td>60%</td>
+        <td>8.5</td>
+      </tr>
+      <tr>
+        <td>Phạm Thị D</td>
+        <td>Cơ sở dữ liệu</td>
+        <td>45%</td>
+        <td>7.8</td>
+      </tr>
+    </table>
+  </section>
+
+  <hr>
+
+  <!-- THẢO LUẬN -->
+  <section>
+    <h2>💬 Thảo luận bài giảng</h2>
+    <p><strong>Câu hỏi mới:</strong></p>
+    <p>“Thầy ơi, sự khác nhau giữa HTML và HTML5 là gì?”</p>
+
+    <textarea rows="3" cols="50" placeholder="Nhập phản hồi..."></textarea><br><br>
+    <button>Trả lời</button>
+  </section>
+
 </body>
 </html>

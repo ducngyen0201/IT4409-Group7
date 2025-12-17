@@ -138,7 +138,7 @@ function ProfilePage() {
           </p>
 
           <div className="px-4 py-2 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm border border-white/10 capitalize">
-            {user?.role === 'teacher' ? 'Giáo viên' : 'Học viên'}
+            {user?.role === 'TEACHER' ? 'Giảng viên' : 'Học viên'}
           </div>
 
           {/* Trang trí nền */}

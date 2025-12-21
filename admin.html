@@ -2,71 +2,134 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Trang quản trị</title>
+  <title>Trang quản trị hệ thống</title>
   <link rel="stylesheet" href="../css/style.css">
 </head>
 
 <body>
 
 <header>
-  <h1>Quản lý hệ thống</h1>
-  <p>Xin chào Admin: <strong><span id="currentUser"></span></strong></p>
+  <h1>Trang quản trị hệ thống</h1>
+  <p>Xin chào, <strong id="currentUser"></strong></p>
   <button onclick="logout()">Đăng xuất</button>
 
   <nav>
     <a href="../index.html">Trang chủ</a> |
-    <a href="admin.html">Trang quản trị</a>
+    <a href="admin.html">Quản trị</a>
   </nav>
 </header>
 
+<hr>
+
 <section>
-  <h2>Chức năng dành cho Admin</h2>
-  <ul>
-    <li>Cung cấp tài khoản giáo viên</li>
-    <li>Quản lý hệ thống người dùng</li>
-    <li>Xem báo cáo thống kê</li>
-  </ul>
+  <h2>Quản lý tài khoản người dùng</h2>
+
+  <table border="1" cellpadding="8">
+    <tr>
+      <th>Username</th>
+      <th>Vai trò</th>
+      <th>Trạng thái</th>
+    </tr>
+    <tr>
+      <td>teacher1</td>
+      <td>Giáo viên</td>
+      <td>Hoạt động</td>
+    </tr>
+    <tr>
+      <td>student1</td>
+      <td>Học sinh</td>
+      <td>Hoạt động</td>
+    </tr>
+  </table>
 </section>
+
+<hr>
+
+<section>
+  <h2>Tạo tài khoản mới</h2>
+
+  <form onsubmit="createUser(event)">
+    <label>Username</label><br>
+    <input type="text" id="newUsername" required><br><br>
+
+    <label>Mật khẩu</label><br>
+    <input type="password" id="newPassword" required><br><br>
+
+    <label>Vai trò</label><br>
+    <select id="newRole">
+      <option value="teacher">Giáo viên</option>
+      <option value="student">Học sinh</option>
+      <option value="admin">Admin</option>
+    </select><br><br>
+
+    <button type="submit">Tạo tài khoản</button>
+  </form>
+</section>
+
+<hr>
 
 <section>
   <h2>Duyệt khóa học mới</h2>
-  <ul id="pendingCourses">
-    <li>
-      Lập trình C cơ bản
-      <button onclick="approveCourse(this)">Duyệt</button>
-    </li>
-    <li>
-      Toán rời rạc
-      <button onclick="approveCourse(this)">Duyệt</button>
-    </li>
+
+  <table border="1" cellpadding="8" id="courseTable">
+    <tr>
+      <th>Tên khóa học</th>
+      <th>Giáo viên</th>
+      <th>Trạng thái</th>
+      <th>Hành động</th>
+    </tr>
+    <tr>
+      <td>Lập trình C cơ bản</td>
+      <td>teacher1</td>
+      <td>Chờ duyệt</td>
+      <td><button onclick="approveCourse(this)">Duyệt</button></td>
+    </tr>
+    <tr>
+      <td>Toán rời rạc</td>
+      <td>teacher2</td>
+      <td>Chờ duyệt</td>
+      <td><button onclick="approveCourse(this)">Duyệt</button></td>
+    </tr>
+  </table>
+</section>
+
+<hr>
+
+<section>
+  <h2>Báo cáo hệ thống</h2>
+  <ul>
+    <li>Tổng số người dùng: 120</li>
+    <li>Số giáo viên: 15</li>
+    <li>Số học sinh: 105</li>
+    <li>Số khóa học đang hoạt động: 18</li>
   </ul>
 </section>
 
-<!-- ================= JS NHÚNG TRỰC TIẾP ================= -->
 <script>
-  // ===== KIỂM TRA ĐĂNG NHẬP ADMIN =====
-  const session = JSON.parse(localStorage.getItem("online_user"));
+const session = JSON.parse(localStorage.getItem("online_user"));
 
-  if (!session || session.role !== "admin") {
-    alert("Bạn không có quyền truy cập trang này!");
-    window.location.href = "login.html";
-  }
+if (!session || session.role !== "admin") {
+  alert("Bạn không có quyền truy cập trang này!");
+  window.location.href = "../login.html";
+}
 
-  // Hiển thị tên admin
-  document.getElementById("currentUser").textContent = session.username;
+document.getElementById("currentUser").textContent = session.username;
 
-  // Duyệt khóa học
-  function approveCourse(button) {
-    const li = button.parentElement;
-    li.innerHTML += " ✔ Đã duyệt";
-    button.remove();
-  }
+function approveCourse(button) {
+  const row = button.parentElement.parentElement;
+  row.cells[2].textContent = "Đã duyệt";
+  row.cells[3].innerHTML = "✔";
+}
 
-  // Đăng xuất
-  function logout() {
-    localStorage.removeItem("online_user");
-    window.location.href = "login.html";
-  }
+function createUser(event) {
+  event.preventDefault();
+  alert("Tạo tài khoản thành công (mô phỏng frontend)");
+}
+
+function logout() {
+  localStorage.removeItem("online_user");
+  window.location.href = "../login.html";
+}
 </script>
 
 </body>

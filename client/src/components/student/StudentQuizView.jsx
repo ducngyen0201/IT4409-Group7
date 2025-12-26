@@ -38,7 +38,7 @@ function StudentQuizView({ quizId }) {
     // Gửi API lưu ngầm
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/attempts/${attempt.id}/answer`, {
+      await axiosClient.post(`/api/attempts/${attempt.id}/answer`, {
         question_id: questionId,
         selected_option_id: optionId
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -53,7 +53,7 @@ function StudentQuizView({ quizId }) {
     setLoading(true);
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.post(`http://localhost:5000/api/attempts/${attempt.id}/submit`, {}, {
+      const res = await axiosClient.post(`/api/attempts/${attempt.id}/submit`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

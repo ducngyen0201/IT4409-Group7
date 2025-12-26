@@ -245,3 +245,42 @@ exports.publishLecture = async (req, res) => {
     res.status(500).json({ error: "Lỗi Server" });
   }
 };
+
+// Hàm cập nhật tiến độ bài học
+exports.updateProgress = async (req, res) => {
+  try {
+    const { id: lecture_id } = req.params;
+    const { progress_percent } = req.body;
+    const student_id = req.user.id; // Lấy từ middleware bảo mật (protect)
+
+    // Kiểm tra tính hợp lệ của dữ liệu
+    if (progress_percent === undefined) {
+      return res.status(400).json({ error: "Thiếu phần trăm tiến độ" });
+    }
+
+    // Xác định xem đã hoàn thành bài học chưa
+    // Nếu progress >= 100 thì gán ngày hoàn thành, ngược lại để null
+    const completedAt = progress_percent >= 100 ? 'NOW()' : null;
+
+    const queryText = `
+      INSERT INTO public.lecture_progress (lecture_id, student_id, progress_percent, last_viewed_at, completed_at)
+      VALUES ($1, $2, $3, NOW(), ${completedAt ? 'NOW()' : 'NULL'})
+      ON CONFLICT (lecture_id, student_id) 
+      DO UPDATE SET 
+        progress_percent = EXCLUDED.progress_percent,
+        last_viewed_at = NOW(),
+        completed_at = CASE 
+          WHEN EXCLUDED.progress_percent >= 100 THEN NOW() 
+          ELSE public.lecture_progress.completed_at 
+        END
+      RETURNING *;
+    `;
+
+    const result = await db.query(queryText, [lecture_id, student_id, progress_percent]);
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Lỗi cập nhật tiến độ:", err.message);
+    res.status(500).json({ error: "Lỗi hệ thống", message: err.message });
+  }
+};

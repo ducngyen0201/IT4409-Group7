@@ -8,14 +8,12 @@ function LectureManager({ courseId }) {
   const [newLectureTitle, setNewLectureTitle] = useState('');
   const [uploadingId, setUploadingId] = useState(null); 
 
-  // --- STATE MODAL ---
   const [modal, setModal] = useState({
     isOpen: false, type: 'alert', title: '', message: '', defaultValue: '', onConfirm: () => {}
   });
   const closeModal = () => setModal({ ...modal, isOpen: false });
   const showAlert = (title, message) => setModal({ isOpen: true, type: 'alert', title, message, onConfirm: () => {} });
 
-  // 1. Hàm lấy danh sách
   const fetchLectures = async () => {
     try {
       const token = sessionStorage.getItem('token');
@@ -32,16 +30,13 @@ function LectureManager({ courseId }) {
     fetchLectures();
   }, [courseId]);
 
-  // 2. Tạo bài giảng
   const handleAddLecture = async (e) => {
     e.preventDefault();
     if (!newLectureTitle.trim()) return;
     try {
-      const token = sessionStorage.getItem('token');
-      await axios.post(
-        `http://localhost:5000/api/courses/${courseId}/lectures`,
-        { title: newLectureTitle, position: lectures.length + 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await axiosClient.post(
+        `/api/courses/${courseId}/lectures`,
+        { title: newLectureTitle, position: lectures.length + 1 }
       );
       setNewLectureTitle('');
       fetchLectures();
@@ -50,39 +45,52 @@ function LectureManager({ courseId }) {
     }
   };
 
-  // 3. Upload Video
-  const handleUpload = async (lectureId, file) => {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append('title', file.name);
-    formData.append('type', 'VIDEO');
-    formData.append('material', file);
+  // 3. Upload File (Video/Tài liệu)
+ const handleUpload = async (lectureId, file) => {
+  if (!file) return;
+  const defaultTitle = file.name.includes('.') 
+    ? file.name.substring(0, file.name.lastIndexOf('.')) 
+    : file.name;
+  setModal({
+    isOpen: true,
+    type: 'prompt',
+    title: 'Tải tài liệu lên',
+    message: 'Nhập tên hiển thị cho tài liệu này:',
+    defaultValue: defaultTitle, // Đã sửa logic chạy từ dưới lên
+    onConfirm: async (finalTitle) => {
+      // Nếu người dùng xóa hết và nhấn OK, lấy lại tên mặc định
+      const titleToUpload = finalTitle.trim() || defaultTitle;
+      
+      const isVideo = file.type.startsWith('video/');
+      const fileType = isVideo ? 'VIDEO' : 'DOCUMENT';
 
-    try {
-      setUploadingId(lectureId);
-      const token = sessionStorage.getItem('token');
-      await axios.post(
-        `http://localhost:5000/api/lectures/${lectureId}/materials`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-      );
-      showAlert('Thành công', 'Upload thành công!');
-      fetchLectures();
-    } catch (err) {
-      console.error(err);
-      showAlert('Lỗi', 'Upload thất bại.');
-    } finally {
-      setUploadingId(null);
+      const formData = new FormData();
+      formData.append('title', titleToUpload);
+      formData.append('type', fileType); 
+      formData.append('file', file);
+
+      try {
+        setUploadingId(lectureId);
+        await axiosClient.post(
+          `/api/lectures/${lectureId}/materials`,
+          formData,
+          { headers: { 'Content-Type': 'multipart/form-data' } }
+        );
+        showAlert('Thành công', 'Đã tải lên tài liệu thành công!');
+        fetchLectures();
+      } catch (err) {
+        console.error(err);
+        showAlert('Lỗi', 'Upload thất bại.');
+      } finally {
+        setUploadingId(null);
+      }
     }
-  };
+  });
+};
 
-  // 4. Xuất bản
   const handlePublish = async (lectureId) => {
     try {
-      const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/lectures/${lectureId}/publish`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axiosClient.post(`/api/lectures/${lectureId}/publish`);
       fetchLectures();
       showAlert('Thành công', 'Đã xuất bản bài giảng.');
     } catch (err) {
@@ -90,22 +98,18 @@ function LectureManager({ courseId }) {
     }
   };
 
-  // 5. Đổi tên tài liệu (Thay prompt)
   const handleRenameMaterial = (materialId, oldName) => {
     setModal({
       isOpen: true,
       type: 'prompt',
       title: 'Đổi tên tài liệu',
-      message: 'Nhập tên mới cho tài liệu:',
+      message: 'Nhập tên mới:',
       defaultValue: oldName,
       onConfirm: async (newName) => {
         if (!newName || newName === oldName) return;
         try {
-          const token = sessionStorage.getItem('token');
-          await axios.patch(`http://localhost:5000/api/materials/${materialId}`, 
-            { title: newName },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          // SỬA: Dùng axiosClient
+          await axiosClient.patch(`/api/materials/${materialId}`, { title: newName });
           fetchLectures();
         } catch (err) {
           showAlert('Lỗi', 'Lỗi đổi tên.');
@@ -114,19 +118,16 @@ function LectureManager({ courseId }) {
     });
   };
 
-  // 6. Xóa tài liệu (Thay confirm)
   const handleDeleteMaterial = (materialId) => {
     setModal({
       isOpen: true,
       type: 'confirm',
       title: 'Xác nhận xóa',
-      message: 'Bạn có chắc chắn muốn xóa file này không?',
+      message: 'Hành động này sẽ xóa file vĩnh viễn trên Cloudinary. Bạn chắc chắn chứ?',
       onConfirm: async () => {
         try {
-          const token = sessionStorage.getItem('token');
-          await axios.delete(`http://localhost:5000/api/materials/${materialId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          // SỬA: Dùng axiosClient
+          await axiosClient.delete(`/api/materials/${materialId}`);
           fetchLectures();
         } catch (err) {
           showAlert('Lỗi', 'Lỗi xóa file.');
@@ -137,10 +138,8 @@ function LectureManager({ courseId }) {
 
   return (
     <div className="space-y-6">
-      {/* MODAL */}
       <CustomModal {...modal} onClose={closeModal} />
 
-      {/* Form tạo bài giảng */}
       <div className="bg-gray-50 p-4 rounded border border-dashed border-gray-300">
         <form onSubmit={handleAddLecture} className="flex gap-2">
           <input
@@ -156,7 +155,6 @@ function LectureManager({ courseId }) {
         </form>
       </div>
 
-      {/* Danh sách bài giảng */}
       <div className="space-y-4">
         {lectures.map((lecture) => {
           const existingQuiz = lecture.quizzes && lecture.quizzes.length > 0 ? lecture.quizzes[0] : null;
@@ -198,8 +196,10 @@ function LectureManager({ courseId }) {
                     {lecture.materials.map(mat => (
                       <li key={mat.id} className="flex items-center justify-between bg-white p-2 rounded border border-gray-200">
                         <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="text-lg">🎥</span>
-                          <a href={mat.url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline truncate">
+                          {/* SỬA: Hiển thị icon theo loại file */}
+                          <span className="text-lg">{mat.type === 'VIDEO' ? '🎥' : '📄'}</span>
+                          {/* SỬA: mat.url -> mat.storage_key để khớp Database */}
+                          <a href={mat.storage_key} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline truncate">
                             {mat.title}
                           </a>
                         </div>
@@ -219,27 +219,28 @@ function LectureManager({ courseId }) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-gray-400 italic mb-4">Chưa có video nào.</p>
+                  <p className="text-sm text-gray-400 italic mb-4">Chưa có tài liệu/video nào.</p>
                 )}
 
                 <div className="flex items-center gap-3">
                   <label className="cursor-pointer inline-flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    <span>📤 Tải video lên</span>
+                    <span>📤 Tải tệp lên</span>
                     <input 
                       type="file" className="hidden"
+                      accept="video/*,.pdf,.doc,.docx"
                       onChange={(e) => handleUpload(lecture.id, e.target.files[0])}
                       disabled={uploadingId === lecture.id}
                     />
                   </label>
                   {uploadingId === lecture.id && (
-                    <span className="text-sm text-indigo-600 font-medium animate-pulse">⏳ Đang tải lên...</span>
+                    <span className="text-sm text-indigo-600 font-medium animate-pulse">⏳ Đang xử lý trên Cloud...</span>
                   )}
                 </div>
               </div>
             </div>
           );
         })}
-        {lectures.length === 0 && <p className="text-center text-gray-500 italic py-8">Chưa có bài giảng nào. Hãy thêm bài đầu tiên!</p>}
+        {lectures.length === 0 && <p className="text-center text-gray-500 italic py-8">Chưa có bài giảng nào.</p>}
       </div>
     </div>
   );

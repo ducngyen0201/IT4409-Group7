@@ -8,13 +8,14 @@ const lectureController = require('../controllers/lectureController');
 const quizController = require('../controllers/quizController');
 const discussionController = require('../controllers/discussionController');
 const progressController = require('../controllers/progressController');
+const uploadCloud = require('../config/cloudinary');
 
 //STT 30
 router.post(
   '/:id/materials', 
   protect,
   isTeacher,
-  upload.single('material'),
+  uploadCloud.single('file'), 
   materialController.uploadMaterial
 );
 
@@ -62,5 +63,7 @@ router.post('/:id/publish', protect, isTeacher, lectureController.publishLecture
 
 //STT 32
 router.get('/:id/quiz', protect, quizController.getQuizByLecture);
+
+router.post('/:id/progress', protect, lectureController.updateProgress);
 
 module.exports = router;

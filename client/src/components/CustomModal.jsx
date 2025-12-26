@@ -32,9 +32,6 @@ const CustomModal = ({
         onConfirm();
       }
     }
-    // Đối với confirm/prompt, thường sẽ chờ parent đóng hoặc tự đóng
-    // Nếu muốn tự đóng luôn thì bỏ comment dòng dưới:
-    // onClose(); 
   };
 
   // Chọn Icon dựa trên Type

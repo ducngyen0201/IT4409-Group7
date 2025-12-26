@@ -1,59 +1,54 @@
 const db = require('../db');
-const fs = require('fs');
-const path = require('path');
+const cloudinary = require('cloudinary').v2; // Cần để thực hiện lệnh xóa file trên Cloud
 
+// 1. API UPLOAD TÀI LIỆU
 exports.uploadMaterial = async (req, res) => {
   try {
-    // 1. Lấy 'id' từ URL và đổi tên thành 'lecture_id'
     const { id: lecture_id } = req.params; 
     const { title, type } = req.body;
     
-    // 2. Kiểm tra file (từ multer)
-    if (!req.file) {
-      return res.status(400).json({ error: 'Không có file nào được tải lên.' });
-    }
+    if (!req.file) return res.status(400).json({ error: 'Không nhận được file từ Cloudinary.' });
 
-    // 3. Lấy đường dẫn (path) của file đã lưu trên server
-    const storageKey = req.file.path; 
-
-    // 4. Lấy kích thước file (bytes)
+    const storageKey = req.file.filename; // Public ID từ Cloudinary
     const sizeBytes = req.file.size;
+    const fileUrl = req.file.path; // Nếu bạn muốn dùng link này thay cho storage_key
 
-    // 5. Kiểm tra xem 'type' (VIDEO, PDF,...) có được gửi lên không
-    if (!type) {
-        return res.status(400).json({ error: 'Cột "type" (loại tài liệu) là bắt buộc.' });
-    }
+    console.log("Dữ liệu chuẩn bị INSERT:", { lecture_id, title, type, storageKey, sizeBytes });
 
-    // 6. Thêm thông tin vào bảng 'materials'
-    const newMaterial = await db.query(
-      `INSERT INTO materials (lecture_id, title, type, storage_key, size_bytes)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [lecture_id, title, type, storageKey, sizeBytes]
-    );
+    // CÂU LỆNH SQL: Đã loại bỏ hoàn toàn cột 'url'
+    const queryText = `
+      INSERT INTO materials (lecture_id, title, type, storage_key, size_bytes)
+      VALUES ($1, $2, $3, $4, $5) 
+      RETURNING *
+    `;
+    const values = [lecture_id, title, type, storageKey, sizeBytes];
 
+    const newMaterial = await db.query(queryText, values);
     res.status(201).json(newMaterial.rows[0]);
 
   } catch (err) {
-    console.error("Lỗi khi upload tài liệu:", err.message);
-    
-    // Kiểm tra xem có phải lỗi do 'lecture_id' không tồn tại không
-    if (err.code === '23503') { // Lỗi foreign key
-        return res.status(400).json({ error: 'lecture_id (ID bài giảng) không tồn tại.' });
-    }
-    
-    res.status(500).json({ error: "Lỗi máy chủ nội bộ", details: err.message });
+    // IN LỖI CHI TIẾT RA TERMINAL
+    console.error("--- LỖI DATABASE CHI TIẾT ---");
+    console.error("Mã lỗi (Code):", err.code);
+    console.error("Nội dung lỗi:", err.message);
+
+    // TRẢ LỖI CHI TIẾT VỀ FRONTEND ĐỂ BẠN ĐỌC ĐƯỢC
+    res.status(500).json({ 
+      error: "Lỗi thực thi SQL", 
+      message: err.message, // Ví dụ: "invalid input value for enum..."
+      detail: err.detail    // Ví dụ: "Key (lecture_id)=(1) is not present in table..."
+    });
   }
 };
 
+// 2. API XÓA TÀI LIỆU
 exports.deleteMaterial = async (req, res) => {
   try {
     const { id: materialId } = req.params;
     const userId = req.user.userId;
 
-    // 1. KIỂM TRA QUYỀN SỞ HỮU VÀ LẤY THÔNG TIN FILE
     const checkOwner = await db.query(
-      `SELECT m.id, m.storage_key 
-       FROM materials m
+      `SELECT m.id, m.storage_key, m.type FROM materials m
        JOIN lectures l ON m.lecture_id = l.id
        JOIN course_instructors ci ON l.course_id = ci.course_id
        WHERE m.id = $1 AND ci.user_id = $2`,
@@ -61,52 +56,52 @@ exports.deleteMaterial = async (req, res) => {
     );
 
     if (checkOwner.rows.length === 0) {
-      return res.status(403).json({ error: 'Bạn không có quyền xóa tài liệu này hoặc tài liệu không tồn tại.' });
+      return res.status(403).json({ error: 'Không có quyền hoặc tài liệu không tồn tại.' });
     }
 
     const material = checkOwner.rows[0];
-    const filePath = material.storage_key;
+    const fileUrl = material.storage_key;
 
-    // 2. XÓA FILE VẬT LÝ (LOCAL STORAGE)
-    // Kiểm tra xem filePath có tồn tại trong DB không
-    if (filePath) {
-      const absolutePath = path.join(process.cwd(), filePath);
+    // --- LOGIC XÓA FILE TRÊN CLOUDINARY ---
+    if (fileUrl && fileUrl.includes('cloudinary.com')) {
+      try {
+        const parts = fileUrl.split('/');
+        const uploadIndex = parts.indexOf('upload');
+        
+        // Lấy toàn bộ đường dẫn từ sau version đến trước phần mở rộng
+        // Ví dụ: "elearning/lectures/lecture_10/file_name"
+        const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+        const publicId = publicIdWithExt.split('.')[0];
 
-      // Kiểm tra file có tồn tại trên ổ cứng không trước khi xóa
-      if (fs.existsSync(absolutePath)) {
-        try {
-          fs.unlinkSync(absolutePath);
-          console.log(`Đã xóa file: ${absolutePath}`);
-        } catch (fileErr) {
-          console.error("Lỗi khi xóa file vật lý:", fileErr.message);
-        }
-      } else {
-        console.warn("File không tồn tại trên ổ cứng:", absolutePath);
+        // Xác định resource_type (video cần khai báo riêng)
+        let resourceType = 'image'; 
+        if (fileUrl.includes('/video/')) resourceType = 'video';
+        if (material.type !== 'VIDEO' && material.type !== 'IMAGE') resourceType = 'raw';
+
+        await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+        console.log("Đã xóa file trên Cloudinary:", publicId);
+      } catch (cloudErr) {
+        console.error("Lỗi xóa file Cloudinary:", cloudErr.message);
       }
     }
 
-    // 3. XÓA TRONG DATABASE
     await db.query("DELETE FROM materials WHERE id = $1", [materialId]);
-
-    res.status(200).json({ message: 'Đã xóa tài liệu và file thành công.' });
+    res.status(200).json({ message: 'Xóa thành công.' });
 
   } catch (err) {
-    console.error("Lỗi xóa tài liệu:", err.message);
     res.status(500).json({ error: "Lỗi Server" });
   }
 };
 
-// [API MỚI] Cập nhật thông tin tài liệu
+// 3. API CẬP NHẬT TÊN TÀI LIỆU (Giữ nguyên vì chỉ sửa Title)
 exports.updateMaterial = async (req, res) => {
   try {
     const { id: materialId } = req.params;
     const userId = req.user.userId;
     const { title } = req.body;
 
-    // 1. Kiểm tra quyền sở hữu (Join qua lecture -> course -> instructors)
     const checkOwner = await db.query(
-      `SELECT m.id 
-       FROM materials m
+      `SELECT m.id FROM materials m
        JOIN lectures l ON m.lecture_id = l.id
        JOIN course_instructors ci ON l.course_id = ci.course_id
        WHERE m.id = $1 AND ci.user_id = $2`,
@@ -114,17 +109,15 @@ exports.updateMaterial = async (req, res) => {
     );
 
     if (checkOwner.rows.length === 0) {
-      return res.status(403).json({ error: 'Bạn không có quyền sửa tài liệu này.' });
+      return res.status(403).json({ error: 'Không có quyền sửa.' });
     }
 
-    // 2. Cập nhật
     const updatedMaterial = await db.query(
       "UPDATE materials SET title = $1 WHERE id = $2 RETURNING *",
       [title, materialId]
     );
 
     res.status(200).json(updatedMaterial.rows[0]);
-
   } catch (err) {
     console.error("Lỗi sửa tài liệu:", err.message);
     res.status(500).json({ error: "Lỗi Server" });

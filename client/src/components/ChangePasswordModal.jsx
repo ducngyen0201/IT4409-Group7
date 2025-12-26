@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
-import { X, Eye, EyeOff, Lock } from 'lucide-react'; // Cần cài: npm install lucide-react
+import { X, Eye, EyeOff, Lock } from 'lucide-react';
 
 const ChangePasswordModal = ({ isOpen, onClose }) => {
   const [passwords, setPasswords] = useState({

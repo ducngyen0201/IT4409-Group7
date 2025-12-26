@@ -3,9 +3,6 @@ import { Link } from 'react-router-dom';
 
 // Thêm prop 'isTeacherView' và gán giá trị mặc định là false
 const CourseCard = ({ course, isTeacherView = false }) => {
-  // Tạo ảnh ngẫu nhiên nếu không có ảnh (Dùng dịch vụ picsum hoặc placeholder màu)
-  // const randomImage = `https://ui-avatars.com/api/?name=${course.title}&background=random&size=400&font-size=0.33`;
-  
   // Hàm hiển thị Status Badge (Chỉ gọi khi là Giáo viên)
   const renderStatusBadge = () => {
     if (!isTeacherView || !course.status) return null;

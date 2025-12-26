@@ -9,22 +9,15 @@ const progressController = require('../controllers/progressController');
 
 // --- 1. CÁC ROUTE KHÔNG CÓ THAM SỐ ID (STATIC ROUTES) ---
 // Phải đặt lên trên cùng để không bị nhầm là ID
-
 // STT 10: Tạo khóa học
 router.post('/', protect, isTeacher, courseController.createCourse);
 
 // STT 9: Lấy danh sách khóa học
 router.get('/', courseController.getAllPublishedCourses);
 
-// [QUAN TRỌNG] Thêm route này nếu frontend bạn đang gọi /api/courses/public
-// Nếu bạn chưa có hàm getPublicCourses, hãy dùng hàm getAllPublishedCourses tạm
 router.get('/public', courseController.getAllPublishedCourses); 
 
-
 // --- 2. CÁC ROUTE CÓ THAM SỐ ID (:id) ---
-// (Các route con của :id như /:id/enroll đặt trước hay sau /:id đều được, 
-// nhưng thói quen tốt là đặt route lấy chi tiết /:id ở cuối nhóm GET)
-
 // STT 12: Cập nhật khóa học
 router.patch('/:id', protect, isTeacher, courseController.updateCourse);
 

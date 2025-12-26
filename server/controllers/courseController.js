@@ -379,67 +379,61 @@ exports.rejectCourse = async (req, res) => {
 };
 
 // [API MỚI] Lấy thống kê học viên của một khóa học
-// GET /api/courses/:id/stats
 exports.getCourseStats = async (req, res) => {
+  const { id: courseId } = req.params;
+
   try {
-    const { id } = req.params;
-
-    // 1. Lấy tổng số bài giảng (để tính %)
+    // 1. Tính tổng số bài giảng của khóa học
     const totalLecturesRes = await db.query(
-      "SELECT COUNT(*) FROM lectures WHERE course_id = $1 AND is_published = true",
-      [id]
+      'SELECT COUNT(*) FROM public.lectures WHERE course_id = $1',
+      [courseId]
     );
-    const totalLectures = parseInt(totalLecturesRes.rows[0].count) || 1; // Tránh chia cho 0
+    const totalLectures = parseInt(totalLecturesRes.rows[0].count) || 0;
 
-    // 2. Lấy danh sách học viên kèm tiến độ và điểm số
-    // Query này kết hợp: Enrollments -> Users -> Lecture Progress -> Quiz Submissions
-    const query = `
+    // 2. Truy vấn danh sách học viên và tiến độ dựa trên Schema mới
+    const statsQuery = `
       SELECT 
         u.id, 
-        u.full_name, 
-        u.email,
-        u.avatar_url,
-        
-        -- Tính số bài đã học
-        (SELECT COUNT(DISTINCT lp.lecture_id) 
-         FROM lecture_progress lp
-         JOIN lectures l ON lp.lecture_id = l.id
-         WHERE l.course_id = $1 AND lp.student_id = u.id AND lp.completed_at IS NOT NULL
-        ) as completed_count,
-
-        -- Tính điểm trung bình Quiz (Lấy điểm cao nhất của mỗi quiz rồi trung bình cộng)
-        (SELECT AVG(max_score)
-         FROM (
-           SELECT MAX(qs.score) as max_score
-           FROM quiz_submissions qs
-           JOIN quizzes q ON qs.quiz_id = q.id
-           JOIN lectures l ON q.lecture_id = l.id
-           WHERE l.course_id = $1 AND qs.student_id = u.id
-           GROUP BY qs.quiz_id
-         ) as subquery
-        ) as avg_score
-
-      FROM enrollments e
-      JOIN users u ON e.student_id = u.id
+        u.full_name, -- Schema của bạn dùng full_name
+        u.email, 
+        u.avatar, 
+        e.requested_at AS enrolled_at, -- Lấy ngày yêu cầu đăng ký
+        -- Đếm số bài đã hoàn thành dựa trên cột completed_at
+        COUNT(lp.id) FILTER (WHERE lp.completed_at IS NOT NULL) AS completed_count
+      FROM public.users u
+      JOIN public.enrollments e ON u.id = e.student_id
+      LEFT JOIN public.lecture_progress lp ON u.id = lp.student_id AND lp.lecture_id IN (
+        SELECT id FROM public.lectures WHERE course_id = $1
+      )
       WHERE e.course_id = $1
-      ORDER BY u.full_name ASC
+      GROUP BY u.id, e.requested_at
+      ORDER BY e.requested_at DESC
     `;
 
-    const result = await db.query(query, [id]);
+    const statsRes = await db.query(statsQuery, [courseId]);
 
-    const stats = result.rows.map(row => ({
-      id: row.id,
-      full_name: row.full_name,
-      email: row.email,
-      avatar_url: row.avatar_url,
-      progress_percent: Math.round((parseInt(row.completed_count) / totalLectures) * 100),
-      avg_score: row.avg_score ? parseFloat(row.avg_score).toFixed(1) : null // Làm tròn 1 số lẻ
-    }));
+    // 3. Tính toán phần trăm tiến độ
+    const students = statsRes.rows.map(student => {
+      const completed = parseInt(student.completed_count) || 0;
+      return {
+        ...student,
+        progress_percent: totalLectures > 0 
+          ? Math.round((completed / totalLectures) * 100) 
+          : 0
+      };
+    });
 
-    res.status(200).json(stats);
+    res.json({
+      total_students: students.length,
+      total_lectures: totalLectures,
+      students: students
+    });
 
   } catch (err) {
-    console.error("Lỗi lấy thống kê:", err);
-    res.status(500).json({ error: "Lỗi Server" });
+    console.error("Lỗi lấy thống kê khóa học:", err.message);
+    res.status(500).json({ 
+      error: "Không thể lấy thống kê", 
+      message: err.message 
+    });
   }
 };

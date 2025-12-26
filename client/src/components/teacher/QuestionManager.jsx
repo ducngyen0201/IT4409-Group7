@@ -31,7 +31,7 @@ function QuestionManager({ quizId }) {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/quizzes/${quizId}/questions`, {
+      await axiosClient.post(`/api/quizzes/${quizId}/questions`, {
         prompt: newPrompt, points: newPoints, type: 'SINGLE_CHOICE', position: questions.length + 1
       }, { headers: { Authorization: `Bearer ${token}` } });
       setNewPrompt(''); fetchQuestions();
@@ -43,7 +43,7 @@ function QuestionManager({ quizId }) {
     if (!content) return;
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post(`http://localhost:5000/api/questions/${questionId}/options`, {
+      await axiosClient.post(`/api/questions/${questionId}/options`, {
         content: content, is_correct: false, position: 1
       }, { headers: { Authorization: `Bearer ${token}` } });
       setOptionInputs({ ...optionInputs, [questionId]: '' }); fetchQuestions();
@@ -53,7 +53,7 @@ function QuestionManager({ quizId }) {
   const handleSetCorrect = async (optionId, isCorrect) => {
     try {
       const token = sessionStorage.getItem('token');
-      await axios.patch(`http://localhost:5000/api/options/${optionId}`, { is_correct: isCorrect }, 
+      await axiosClient.patch(`/api/options/${optionId}`, { is_correct: isCorrect }, 
       { headers: { Authorization: `Bearer ${token}` } });
       fetchQuestions();
     } catch (err) { console.error(err); }
@@ -68,7 +68,7 @@ function QuestionManager({ quizId }) {
       onConfirm: async () => {
         try {
           const token = sessionStorage.getItem('token');
-          await axios.delete(`http://localhost:5000/api/options/${optionId}`, {
+          await axiosClient.delete(`/api/options/${optionId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           fetchQuestions();

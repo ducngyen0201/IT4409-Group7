@@ -18,7 +18,6 @@ router.get(
 // --- [ĐÃ SỬA] TÁCH RA 2 ROUTE RIÊNG BIỆT ---
 
 // STT 5a: Chỉ cập nhật thông tin văn bản (Tên, SĐT...)
-// URL: PATCH /api/me/info
 router.patch(
   '/info',
   protect,
@@ -26,7 +25,6 @@ router.patch(
 );
 
 // STT 5b: Chỉ cập nhật Avatar (Upload ảnh)
-// URL: PATCH /api/me/avatar
 router.patch(
   '/avatar',
   protect,

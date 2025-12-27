@@ -13,4 +13,10 @@ router.get('/courses', adminController.getAllCourses);
 // PATCH /api/admin/courses/:id/status
 router.patch('/courses/:id/status', adminController.updateCourseStatus);
 
+// GET /api/admin/users
+router.get('/users', adminController.getAllUsers);
+
+// PATCH /api/admin/users/:id/status
+router.patch('/users/:id/status', adminController.toggleUserStatus);
+
 module.exports = router;

@@ -1,5 +1,6 @@
 const db = require('../db');
-const cloudinary = require('cloudinary').v2; // Cần để thực hiện lệnh xóa file trên Cloud
+const cloudinary = require('cloudinary').v2;
+const fs = require('fs'); // Thêm thư viện File System để xóa file tạm
 
 // 1. API UPLOAD TÀI LIỆU
 exports.uploadMaterial = async (req, res) => {
@@ -7,45 +8,36 @@ exports.uploadMaterial = async (req, res) => {
     const { id: lecture_id } = req.params; 
     const { title, type } = req.body;
     
-    if (!req.file) return res.status(400).json({ error: 'Không nhận được file từ Cloudinary.' });
+    if (!req.file) return res.status(400).json({ error: 'Không nhận được file.' });
 
-    const storageKey = req.file.filename; // Public ID từ Cloudinary
+    // Với CloudinaryStorage:
+    const fileUrl = req.file.path;       // Đây đã là link https://res.cloudinary...
+    const storageKey = req.file.filename; // Đây là Public ID trên Cloud
     const sizeBytes = req.file.size;
-    const fileUrl = req.file.path; // Nếu bạn muốn dùng link này thay cho storage_key
 
-    console.log("Dữ liệu chuẩn bị INSERT:", { lecture_id, title, type, storageKey, sizeBytes });
-
-    // CÂU LỆNH SQL: Đã loại bỏ hoàn toàn cột 'url'
     const queryText = `
       INSERT INTO materials (lecture_id, title, type, storage_key, size_bytes)
-      VALUES ($1, $2, $3, $4, $5) 
-      RETURNING *
+      VALUES ($1, $2, $3, $4, $5) RETURNING *
     `;
-    const values = [lecture_id, title, type, storageKey, sizeBytes];
+    // Lưu fileUrl vào storage_key để frontend dễ lấy
+    const values = [lecture_id, title, type, fileUrl, sizeBytes];
 
     const newMaterial = await db.query(queryText, values);
+    
+    // KHÔNG CẦN fs.unlinkSync vì không có file ở local
     res.status(201).json(newMaterial.rows[0]);
 
   } catch (err) {
-    // IN LỖI CHI TIẾT RA TERMINAL
-    console.error("--- LỖI DATABASE CHI TIẾT ---");
-    console.error("Mã lỗi (Code):", err.code);
-    console.error("Nội dung lỗi:", err.message);
-
-    // TRẢ LỖI CHI TIẾT VỀ FRONTEND ĐỂ BẠN ĐỌC ĐƯỢC
-    res.status(500).json({ 
-      error: "Lỗi thực thi SQL", 
-      message: err.message, // Ví dụ: "invalid input value for enum..."
-      detail: err.detail    // Ví dụ: "Key (lecture_id)=(1) is not present in table..."
-    });
+    console.error("Lỗi:", err.message);
+    res.status(500).json({ error: "Lỗi Server" });
   }
 };
 
-// 2. API XÓA TÀI LIỆU
+// 2. API XÓA TÀI LIỆU (Cải tiến logic lấy Public ID)
 exports.deleteMaterial = async (req, res) => {
   try {
     const { id: materialId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.userId; // Khớp với authMiddleware
 
     const checkOwner = await db.query(
       `SELECT m.id, m.storage_key, m.type FROM materials m
@@ -60,28 +52,26 @@ exports.deleteMaterial = async (req, res) => {
     }
 
     const material = checkOwner.rows[0];
-    const fileUrl = material.storage_key;
+    const fileUrl = material.storage_key; // Đây là URL đầy đủ
 
     // --- LOGIC XÓA FILE TRÊN CLOUDINARY ---
-    if (fileUrl && fileUrl.includes('cloudinary.com')) {
+    if (fileUrl && fileUrl.startsWith('http')) {
       try {
+        // Tách Public ID từ URL Cloudinary
         const parts = fileUrl.split('/');
         const uploadIndex = parts.indexOf('upload');
-        
-        // Lấy toàn bộ đường dẫn từ sau version đến trước phần mở rộng
-        // Ví dụ: "elearning/lectures/lecture_10/file_name"
         const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
         const publicId = publicIdWithExt.split('.')[0];
 
-        // Xác định resource_type (video cần khai báo riêng)
-        let resourceType = 'image'; 
+        // Xác định resource_type
+        let resourceType = 'raw'; // Mặc định cho PDF, Docx, Zip
         if (fileUrl.includes('/video/')) resourceType = 'video';
-        if (material.type !== 'VIDEO' && material.type !== 'IMAGE') resourceType = 'raw';
+        if (fileUrl.includes('/image/')) resourceType = 'image';
 
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
-        console.log("Đã xóa file trên Cloudinary:", publicId);
+        console.log("Đã xóa trên Cloudinary:", publicId);
       } catch (cloudErr) {
-        console.error("Lỗi xóa file Cloudinary:", cloudErr.message);
+        console.error("Lỗi xóa Cloudinary:", cloudErr.message);
       }
     }
 
@@ -93,11 +83,11 @@ exports.deleteMaterial = async (req, res) => {
   }
 };
 
-// 3. API CẬP NHẬT TÊN TÀI LIỆU (Giữ nguyên vì chỉ sửa Title)
+// 3. API CẬP NHẬT TÊN TÀI LIỆU
 exports.updateMaterial = async (req, res) => {
   try {
     const { id: materialId } = req.params;
-    const userId = req.user.userId;
+    const userId = req.user.userId; // Khớp với authMiddleware
     const { title } = req.body;
 
     const checkOwner = await db.query(
@@ -119,7 +109,6 @@ exports.updateMaterial = async (req, res) => {
 
     res.status(200).json(updatedMaterial.rows[0]);
   } catch (err) {
-    console.error("Lỗi sửa tài liệu:", err.message);
     res.status(500).json({ error: "Lỗi Server" });
   }
 };

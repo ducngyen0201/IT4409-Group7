@@ -2,8 +2,6 @@ import React, { createContext, useState, useEffect } from 'react';
 
 import axiosClient from '../api/axiosClient';
 
-
-
 // Tạo Context
 export const AuthContext = createContext();
 
@@ -45,9 +43,13 @@ export const AuthProvider = ({ children }) => {
   // Hàm Đăng xuất
   const logout = () => {
     sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setUser(null);
-    window.location.href = '/login'; // Chuyển hướng cứng về login
+    window.location.href = '/login'; // Reset toàn bộ app để bảo mật
   };
+
+  // Tránh render App khi chưa kiểm tra xong trạng thái login
+  if (loading) return null;
 
   return (
     <AuthContext.Provider value={{ user, login, logout, loading }}>

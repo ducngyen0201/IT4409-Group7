@@ -70,16 +70,19 @@ exports.updateInfo = async (req, res) => {
 // 4. Cập nhật ảnh đại diện
 exports.updateAvatar = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.userId; // Sử dụng userId thống nhất
 
-    // Kiểm tra xem Middleware Multer đã bắt được file chưa
+    // 1. Kiểm tra xem Middleware Multer đã bắt được file chưa
     if (!req.file) {
       return res.status(400).json({ error: 'Vui lòng chọn file ảnh' });
     }
 
-    const serverUrl = process.env.SERVER_URL || 'http://localhost:5000';
-    const avatarUrl = `${serverUrl}/uploads/${req.file.filename}`;
+    // 2. LẤY URL TRỰC TIẾP TỪ CLOUDINARY
+    const avatarUrl = req.file.path; 
 
+    console.log("Link ảnh từ Cloudinary:", avatarUrl);
+
+    // 3. CẬP NHẬT DATABASE
     const query = `
       UPDATE users 
       SET avatar = $1
@@ -89,9 +92,10 @@ exports.updateAvatar = async (req, res) => {
 
     const { rows } = await db.query(query, [avatarUrl, userId]);
 
+    // 4. TRẢ VỀ KẾT QUẢ
     res.json({ 
       message: 'Đổi ảnh đại diện thành công', 
-      avatar: rows[0].avatar,
+      avatar: rows[0].avatar, // Trả về link https đầy đủ
       user: rows[0]
     });
 

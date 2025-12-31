@@ -65,3 +65,23 @@ exports.removeInstructor = async (req, res) => {
     res.status(500).json({ error: "Lỗi Server" });
   }
 };
+
+exports.checkInstructorPermission = async (req, res) => {
+  try {
+    // Lưu ý: Route là /:id nên params phải là id
+    const { id } = req.params; 
+    const userId = req.user.userId; // Lấy từ middleware protect
+
+    // Truy vấn bảng course_instructors (sử dụng course_id và user_id)
+    const result = await db.query(
+      "SELECT id FROM course_instructors WHERE course_id = $1 AND user_id = $2",
+      [id, userId]
+    );
+
+    // Trả về true nếu tìm thấy bản ghi, ngược lại false
+    res.status(200).json({ isInstructor: result.rows.length > 0 });
+  } catch (err) {
+    console.error("Lỗi Backend:", err.message);
+    res.status(500).json({ error: "Lỗi máy chủ khi kiểm tra quyền" });
+  }
+};

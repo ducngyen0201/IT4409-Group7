@@ -4,27 +4,38 @@ const jwt = require('jsonwebtoken'); // Thư viện tạo và xác thực JWT
 
 exports.register = async (req, res) => {
   try {
-    // 1. Lấy email, password, full_name từ client
-    const { email, password, full_name } = req.body;
+    // 1. Lấy thêm trường role từ req.body
+    const { email, password, full_name, role } = req.body;
 
-    // 2. Kiểm tra xem email đã tồn tại chưa
+    // 2. Kiểm tra dữ liệu đầu vào cơ bản
+    if (!email || !password || !full_name) {
+      return res.status(400).json({ error: "Vui lòng điền đầy đủ thông tin." });
+    }
+
+    // 3. Kiểm tra xem email đã tồn tại chưa
     const userCheck = await db.query("SELECT * FROM users WHERE email = $1", [email]);
-
     if (userCheck.rows.length > 0) {
       return res.status(401).json({ error: "Email đã tồn tại." });
     }
 
-    // 3. Mã hóa (hash) mật khẩu
+    // 4. Xử lý logic Role (Quan trọng để bảo mật)
+    const validRoles = ['STUDENT', 'TEACHER'];
+    // Nếu role gửi lên không hợp lệ hoặc trống, mặc định là STUDENT
+    const userRole = validRoles.includes(role) ? role : 'STUDENT';
+
+    // 5. Mã hóa (hash) mật khẩu
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Thêm người dùng mới vào database
+    // 6. Thêm người dùng mới vào database (Bổ sung cột role)
     const newUser = await db.query(
-      "INSERT INTO users (email, password_hash, full_name) VALUES ($1, $2, $3) RETURNING id, email, full_name, role",
-      [email, hashedPassword, full_name]
+      `INSERT INTO users (email, password_hash, full_name, role) 
+       VALUES ($1, $2, $3, $4) 
+       RETURNING id, email, full_name, role`,
+      [email, hashedPassword, full_name, userRole]
     );
 
-    // 5. Trả về thông báo thành công
+    // 7. Trả về thông báo thành công
     res.status(201).json({ 
       message: "Đăng ký thành công!",
       user: newUser.rows[0] 

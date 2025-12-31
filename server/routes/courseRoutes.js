@@ -42,6 +42,8 @@ router.get('/:id/instructors', protect, instructorController.getInstructors);
 // STT 17: Thêm giảng viên
 router.post('/:id/instructors', protect, isTeacher, instructorController.addInstructor);
 
+router.get('/:id/check-instructor', protect, instructorController.checkInstructorPermission);
+
 // STT 18: Xóa giảng viên
 router.delete('/:id/instructors/:userId', protect, isTeacher, instructorController.removeInstructor);
 
@@ -58,7 +60,6 @@ router.get('/:id/stats', protect, isTeacher, courseController.getCourseStats);
 router.use('/:id/enrollments', enrollmentRoutes);
 
 // --- [SỬA LẠI VỊ TRÍ] STT 11: Lấy chi tiết khóa học ---
-// Đặt cái này xuống dưới cùng của nhóm GET để tránh nó "ăn tranh" các từ khóa như 'public', 'search'...
 router.get('/:id', identifyUser, courseController.getCourseDetails);
 
 module.exports = router;

@@ -94,3 +94,37 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.forgotPasswordCheck = async (req, res) => {
+    try {
+        const { email } = req.body;
+        const result = await db.query("SELECT id FROM users WHERE email = $1", [email]);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Email không tồn tại." });
+        }
+        
+        res.status(200).json({ exists: true });
+    } catch (err) {
+        res.status(500).json({ error: "Lỗi máy chủ" });
+    }
+};
+
+// Bước 2: Cập nhật mật khẩu mới (không cần token xác thực)
+exports.resetPasswordQuick = async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        
+        // Mã hóa mật khẩu mới
+        const salt = await bcrypt.genSalt(10);
+        const hashedPass = await bcrypt.hash(newPassword, salt);
+        
+        await db.query(
+            "UPDATE users SET password_hash = $1 WHERE email = $2",
+            [hashedPass, email]
+        );
+        
+        res.status(200).json({ message: "Mật khẩu đã được cập nhật." });
+    } catch (err) {
+        res.status(500).json({ error: "Lỗi khi cập nhật mật khẩu" });
+    }
+};

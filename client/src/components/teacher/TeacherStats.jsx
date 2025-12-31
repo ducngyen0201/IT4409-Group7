@@ -1,43 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axiosClient from '../../api/axiosClient';
 import LoadingSpinner from '../LoadingSpinner';
-import CustomModal from '../../components/CustomModal';
+import { Users, BookOpen, TrendingUp, Award, Search } from 'lucide-react'; // Sử dụng Lucide-react đồng bộ
 
 function TeacherStats({ courseId }) {
   const [stats, setStats] = useState({
     students: [],
     total_students: 0,
-    total_lectures: 0,
-    pending_students: 0
+    total_lectures: 0
   });
   const [loading, setLoading] = useState(true);
-
-  const [modal, setModal] = useState({
-    isOpen: false,
-    type: 'alert',
-    title: '',
-    message: '',
-    confirmText: '',
-    confirmColor: '',
-    onConfirm: () => {}
-  });
-
-  const closeModal = () => setModal(prev => ({ ...prev, isOpen: false }));
-  
-  const showAlert = (title, message) => {
-    setModal({
-      isOpen: true,
-      type: 'alert',
-      title,
-      message,
-      confirmText: 'Đóng',
-      onConfirm: closeModal
-    });
-  };
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchStats = useCallback(async () => {
     try {
-      // Sử dụng userId từ token theo quy định của authMiddleware
+      setLoading(true);
       const res = await axiosClient.get(`/api/courses/${courseId}/stats`);
       setStats(res.data);
     } catch (err) {
@@ -51,193 +28,150 @@ function TeacherStats({ courseId }) {
     if (courseId) fetchStats();
   }, [fetchStats]);
 
-  const handleAddByEmail = () => {
-    setModal({
-      isOpen: true,
-      type: 'prompt',
-      title: 'Thêm học viên mới',
-      message: 'Nhập địa chỉ Email của học viên để thêm trực tiếp vào lớp:',
-      confirmText: 'Thêm vào lớp',
-      confirmColor: 'bg-indigo-600 hover:bg-indigo-700',
-      onConfirm: async (email) => {
-        if (!email || !email.includes('@')) {
-          showAlert('Lỗi', 'Vui lòng nhập Email hợp lệ.');
-          return;
-        }
-        try {
-          await axiosClient.post(`/api/courses/${courseId}/enrollments`, { email });
-          closeModal();
-          showAlert('Thành công', `Học viên ${email} đã được thêm vào lớp.`);
-          fetchStats();
-        } catch (err) {
-          const msg = err.response?.data?.error || 'Lỗi: Không tìm thấy học sinh hoặc đã ở trong lớp.';
-          showAlert('Lỗi', msg);
-        }
-      }
-    });
-  };
-
-  const handleApprove = (enrollmentId) => {
-    setModal({
-      isOpen: true,
-      type: 'confirm',
-      title: 'Duyệt học viên',
-      message: 'Xác nhận cho phép học viên này tham gia khóa học?',
-      confirmText: 'Duyệt ngay',
-      confirmColor: 'bg-green-600 hover:bg-green-700',
-      onConfirm: async () => {
-        try {
-          await axiosClient.post(`/api/courses/${courseId}/enrollments/${enrollmentId}/approve`);
-          closeModal();
-          showAlert('Thành công', 'Học viên đã được phê duyệt.');
-          fetchStats();
-        } catch (err) {
-          showAlert('Lỗi', 'Thao tác thất bại.');
-        }
-      }
-    });
-  };
-
-  const handleReject = (enrollmentId) => {
-    setModal({
-      isOpen: true,
-      type: 'prompt',
-      title: 'Từ chối đăng ký',
-      message: 'Lý do từ chối (không bắt buộc):',
-      confirmText: 'Xác nhận từ chối',
-      confirmColor: 'bg-red-600 hover:bg-red-700',
-      onConfirm: async (reason) => {
-        try {
-          await axiosClient.post(`/api/courses/${courseId}/enrollments/${enrollmentId}/reject`, { note: reason });
-          closeModal();
-          showAlert('Thông báo', 'Đã từ chối yêu cầu đăng ký.');
-          fetchStats();
-        } catch (err) {
-          showAlert('Lỗi', 'Có lỗi xảy ra.');
-        }
-      }
-    });
-  };
-
   const getAvatarUrl = (path) => {
-  if (!path) return null;
-
-  if (path.startsWith('http')) {
-    return path; 
-  }
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  
-  return `${baseUrl}${cleanPath}`;
-};
+    if (!path) return null;
+    if (path.startsWith('http')) return path; 
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  };
 
   if (loading) return <div className="p-8"><LoadingSpinner /></div>;
 
-  const approvedStudents = stats.students.filter(s => s.enrollment_status === 'APPROVED');
+  // Lọc danh sách: Chỉ lấy học viên đã vào lớp (APPROVED) và lọc theo tìm kiếm
+  const approvedStudents = stats.students.filter(s => 
+    s.enrollment_status === 'APPROVED' && 
+    (s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || s.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   const classAvgProgress = approvedStudents.length > 0
     ? approvedStudents.reduce((acc, curr) => acc + (curr.progress_percent || 0), 0) / approvedStudents.length
     : 0;
 
   return (
-    <div className="space-y-6">
-      <CustomModal {...modal} onClose={closeModal} />
-
-      {/* DÒNG KẾT QUẢ HỌC TẬP & NÚT THÊM HỌC VIÊN */}
-      <div className="flex flex-col lg:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1 w-full">
-          <div className="text-center md:text-left md:border-r border-gray-100 last:border-0 px-2">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Học viên</h3>
-            <p className="text-xl font-black text-indigo-600">{stats.total_students}</p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      
+      {/* 1. DASHBOARD TỔNG QUAN (CHỈ SỐ THỐNG KÊ) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-2 text-indigo-600">
+            <Users size={20} />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tổng học viên</h3>
           </div>
-          <div className="text-center md:text-left md:border-r border-gray-100 last:border-0 px-2">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Chờ duyệt</h3>
-            <p className="text-xl font-black text-amber-500">{stats.pending_students}</p>
-          </div>
-          <div className="text-center md:text-left md:border-r border-gray-100 last:border-0 px-2">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Tiến độ lớp</h3>
-            <p className="text-xl font-black text-green-500">{Math.round(classAvgProgress)}%</p>
-          </div>
-          <div className="text-center md:text-left px-2">
-            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Bài giảng</h3>
-            <p className="text-xl font-black text-purple-500">{stats.total_lectures}</p>
-          </div>
+          <p className="text-3xl font-black text-gray-900">{approvedStudents.length}</p>
         </div>
 
-        <div className="w-full lg:w-auto border-t lg:border-t-0 lg:border-l border-gray-100 pt-4 lg:pt-0 lg:pl-6">
-          <button 
-            onClick={handleAddByEmail}
-            className="w-full lg:w-auto px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 whitespace-nowrap"
-          >
-            <span className="text-lg">＋</span> Thêm học viên
-          </button>
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-2 text-green-500">
+            <TrendingUp size={20} />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Tiến độ TB lớp</h3>
+          </div>
+          <p className="text-3xl font-black text-gray-900">{Math.round(classAvgProgress)}%</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-2 text-purple-500">
+            <BookOpen size={20} />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Số bài giảng</h3>
+          </div>
+          <p className="text-3xl font-black text-gray-900">{stats.total_lectures}</p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-2 text-amber-500">
+            <Award size={20} />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Hoàn thành</h3>
+          </div>
+          <p className="text-3xl font-black text-gray-900">
+            {approvedStudents.filter(s => s.progress_percent === 100).length}
+          </p>
         </div>
       </div>
 
-      {/* DANH SÁCH CHI TIẾT */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="font-bold text-gray-700">Chi tiết danh sách lớp học</h2>
-          <span className="text-[10px] font-bold text-gray-400 uppercase">Dữ liệu cập nhật mới nhất</span>
+      {/* 2. BẢNG CHI TIẾT TIẾN ĐỘ HỌC TẬP */}
+      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="px-8 py-6 border-b border-gray-50 flex flex-col md:flex-row justify-between items-md-center gap-4 bg-gray-50/30">
+          <div>
+            <h2 className="text-lg font-black text-gray-800 tracking-tight">Bảng theo dõi học tập</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase mt-1">Dữ liệu thời gian thực</p>
+          </div>
+          
+          {/* Thanh tìm kiếm học viên */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input 
+              type="text"
+              placeholder="Tìm học viên..."
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full md:w-64 transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
-        
-        {stats.students.length === 0 ? (
-          <div className="p-16 text-center text-gray-400 italic">Chưa có học viên nào tham gia.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
-              <thead className="bg-gray-50/50">
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="text-left border-b border-gray-50">
+                <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Học viên</th>
+                <th className="px-8 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Tiến độ hoàn thành</th>
+                <th className="px-8 py-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {approvedStudents.length === 0 ? (
                 <tr>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Thông tin học viên</th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">Trạng thái / Tiến độ</th>
-                  <th className="px-6 py-3 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Hành động</th>
+                  <td colSpan="3" className="px-8 py-20 text-center text-gray-400 italic font-medium">
+                    Không tìm thấy dữ liệu học viên.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {stats.students.map((student) => (
-                  <tr key={student.student_id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
+              ) : (
+                approvedStudents.map((student) => (
+                  <tr key={student.student_id} className="group hover:bg-indigo-50/30 transition-all">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
                         <img 
                           src={getAvatarUrl(student.avatar) || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.full_name)}&background=random`} 
-                          className="w-9 h-9 rounded-full object-cover border border-gray-100" 
+                          className="w-10 h-10 rounded-2xl object-cover border-2 border-white shadow-sm" 
                           alt="" 
                         />
                         <div>
-                          <p className="text-sm font-bold text-gray-800">{student.full_name}</p>
-                          <p className="text-[11px] text-gray-400 font-medium">{student.email}</p>
+                          <p className="text-sm font-black text-gray-800 leading-none mb-1">{student.full_name}</p>
+                          <p className="text-[11px] text-gray-400 font-bold tracking-tight">{student.email}</p>
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {student.enrollment_status === 'APPROVED' ? (
-                        <div className="flex items-center gap-3">
-                          <div className="w-24 bg-gray-100 rounded-full h-2 overflow-hidden">
-                            <div className="bg-green-500 h-2 rounded-full transition-all duration-500" style={{ width: `${student.progress_percent}%` }}></div>
-                          </div>
-                          <span className="text-xs font-bold text-gray-700">{student.progress_percent}%</span>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                              student.progress_percent === 100 ? 'bg-green-500' : 'bg-indigo-600'
+                            }`}
+                            style={{ width: `${student.progress_percent}%` }}
+                          ></div>
                         </div>
-                      ) : (
-                        <span className="px-3 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-700">CHỜ PHÊ DUYỆT</span>
-                      )}
+                        <span className="text-xs font-black text-gray-700 w-10">{student.progress_percent}%</span>
+                      </div>
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      {student.enrollment_status === 'PENDING' ? (
-                        <div className="flex justify-end gap-2">
-                          <button onClick={() => handleApprove(student.enrollment_id)} className="px-4 py-1.5 bg-green-600 text-white text-[11px] font-bold rounded-lg hover:bg-green-700 shadow-sm transition-colors">Duyệt</button>
-                          <button onClick={() => handleReject(student.enrollment_id)} className="px-4 py-1.5 bg-red-50 text-red-600 text-[11px] font-bold rounded-lg hover:bg-red-600 hover:text-white transition-all">Từ chối</button>
-                        </div>
+                    <td className="px-8 py-5 text-center">
+                      {student.progress_percent === 100 ? (
+                        <span className="px-3 py-1.5 bg-green-50 text-green-600 text-[9px] font-black rounded-xl uppercase tracking-wider border border-green-100">
+                          Đã hoàn thành
+                        </span>
                       ) : (
-                        <span className="text-[11px] text-gray-300 font-bold uppercase tracking-tighter">Thành viên lớp</span>
+                        <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-xl uppercase tracking-wider border border-indigo-100">
+                          Đang học
+                        </span>
                       )}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

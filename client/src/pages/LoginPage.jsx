@@ -85,13 +85,10 @@ function LoginPage() {
           </div>
 
           {/* Trường Password */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm font-semibold text-gray-700">Mật khẩu</label>
-              <Link to="/forgot-password" size={18} className="text-xs text-indigo-600 hover:underline font-medium">
-                Quên mật khẩu?
-              </Link>
-            </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-semibold text-gray-700">
+              Mật khẩu
+            </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Lock size={18} />
@@ -100,11 +97,21 @@ function LoginPage() {
                 name="password"
                 type="password"
                 required
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
               />
+            </div>
+            
+            {/* Nút Quên mật khẩu đã được chuyển xuống đây */}
+            <div className="flex justify-end">
+              <Link 
+                to="/forgot-password" 
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                Quên mật khẩu?
+              </Link>
             </div>
           </div>
 

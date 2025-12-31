@@ -1,6 +1,7 @@
 const db = require('../db');
 const cloudinary = require('cloudinary').v2;
-const fs = require('fs'); // Thêm thư viện File System để xóa file tạm
+const fs = require('fs');
+const path = require('path');
 
 // 1. API UPLOAD TÀI LIỆU
 exports.uploadMaterial = async (req, res) => {
@@ -8,28 +9,54 @@ exports.uploadMaterial = async (req, res) => {
     const { id: lecture_id } = req.params; 
     const { title, type } = req.body;
     
+    // 1. Kiểm tra sự tồn tại của file
     if (!req.file) return res.status(400).json({ error: 'Không nhận được file.' });
 
-    // Với CloudinaryStorage:
-    const fileUrl = req.file.path;       // Đây đã là link https://res.cloudinary...
-    const storageKey = req.file.filename; // Đây là Public ID trên Cloud
+    // 2. KHAI BÁO WHITELIST (Chỉ cho phép những gì an toàn)
+    const allowedExtensions = ['.pdf', '.doc', '.docx', '.mp4', '.jpg', '.png'];
+    const allowedMimeTypes = [
+      'application/pdf', 
+      'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'video/mp4',
+      'image/jpeg',
+      'image/png'
+    ];
+
+    // 3. KIỂM TRA EXTENSION (Chống Double Extension)
+    const fileExt = path.extname(req.file.originalname).toLowerCase();
+    if (!allowedExtensions.includes(fileExt)) {
+      return res.status(400).json({ error: `Định dạng đuôi file ${fileExt} không được phép.` });
+    }
+
+    // 4. KIỂM TRA MIME TYPE (Chống Content-Type Spoofing)
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: 'Nội dung file (MIME type) không hợp lệ.' });
+    }
+
+    // 5. KIỂM TRA DUNG LƯỢNG (Phòng chống DoS/Làm đầy bộ nhớ)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (req.file.size > maxSize) {
+      return res.status(400).json({ error: 'File vượt quá dung lượng cho phép (10MB).' });
+    }
+
+    // 6. XỬ LÝ LƯU DATABASE (Sử dụng Parameterized Query để chống SQLi)
+    const fileUrl = req.file.path;
     const sizeBytes = req.file.size;
 
     const queryText = `
       INSERT INTO materials (lecture_id, title, type, storage_key, size_bytes)
       VALUES ($1, $2, $3, $4, $5) RETURNING *
     `;
-    // Lưu fileUrl vào storage_key để frontend dễ lấy
     const values = [lecture_id, title, type, fileUrl, sizeBytes];
 
     const newMaterial = await db.query(queryText, values);
     
-    // KHÔNG CẦN fs.unlinkSync vì không có file ở local
     res.status(201).json(newMaterial.rows[0]);
 
   } catch (err) {
-    console.error("Lỗi:", err.message);
-    res.status(500).json({ error: "Lỗi Server" });
+    console.error("Lỗi bảo mật/hệ thống:", err.message);
+    res.status(500).json({ error: "Lỗi Server nội bộ" });
   }
 };
 

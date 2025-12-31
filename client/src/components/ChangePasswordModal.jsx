@@ -42,34 +42,36 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
-    // Validate Client-side
-    if (passwords.newPassword.length < 6) {
-      return setMessage({ type: 'error', text: 'Mật khẩu mới phải từ 6 ký tự trở lên!' });
+    // 1. Kiểm tra độ dài
+    if (passwords.newPassword.length < 8) {
+      return setMessage({ type: 'error', text: 'Mật khẩu mới nên từ 8 ký tự để bảo mật hơn!' });
     }
 
+    // 2. Kiểm tra trùng mật khẩu cũ (Security Policy)
+    if (passwords.newPassword === passwords.currentPassword) {
+      return setMessage({ type: 'error', text: 'Mật khẩu mới không được trùng với mật khẩu hiện tại!' });
+    }
+
+    // 3. Xác nhận mật khẩu
     if (passwords.newPassword !== passwords.confirmPassword) {
       return setMessage({ type: 'error', text: 'Xác nhận mật khẩu không khớp!' });
     }
 
     try {
       setIsLoading(true);
-
-      // Gọi API: axiosClient tự động xử lý Token trong header
       await axiosClient.patch('/api/me/password', {
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword
       });
 
-      setMessage({ type: 'success', text: 'Đổi mật khẩu thành công!' });
+      setMessage({ type: 'success', text: 'Đổi mật khẩu thành công! Đang đóng...' });
       
-      // Đóng modal sau 1.5s
       setTimeout(() => {
         onClose();
       }, 1500);
 
     } catch (error) {
-      console.error(error);
-      const errorMsg = error.response?.data?.error || 'Lỗi kết nối server';
+      const errorMsg = error.response?.data?.error || 'Mật khẩu hiện tại không chính xác';
       setMessage({ type: 'error', text: errorMsg });
     } finally {
       setIsLoading(false);
@@ -151,7 +153,7 @@ const ChangePasswordModal = ({ isOpen, onClose }) => {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-md hover:shadow-lg disabled:bg-blue-400 flex items-center gap-2"
+                className="px-6 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100 rounded-lg transition shadow-md hover:shadow-lg disabled:bg-blue-400 flex items-center gap-2"
               >
                 {isLoading && <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>}
                 {isLoading ? 'Đang xử lý...' : 'Lưu thay đổi'}

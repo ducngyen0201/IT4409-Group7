@@ -13,6 +13,7 @@ import TeacherQuizEditor from './pages/teacher/TeacherQuizEditor';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 import VideoCallPage from './pages/VideoCallPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Routes>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/course/:id" element={<CourseDetailPage />} />
           

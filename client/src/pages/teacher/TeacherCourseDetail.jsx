@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'; // Xóa useNavigate khỏi đây
-import { useParams, useNavigate } from 'react-router-dom'; // Import useNavigate đúng cách
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 import LectureManager from '../../components/teacher/LectureManager';
 import TeacherStats from '../../components/teacher/TeacherStats';

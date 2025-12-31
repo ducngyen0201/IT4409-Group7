@@ -9,4 +9,7 @@ router.post('/register', authController.register);
 //STT 1
 router.post('/login', authController.login);
 
+router.post('/forgot-password-check', authController.forgotPasswordCheck);
+router.post('/reset-password-quick', authController.resetPasswordQuick);
+
 module.exports = router;

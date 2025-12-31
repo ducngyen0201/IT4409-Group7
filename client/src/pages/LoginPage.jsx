@@ -1,24 +1,20 @@
 import React, { useState, useContext } from 'react';
 import axiosClient from '../api/axiosClient';
-import { useNavigate, Link } from 'react-router-dom'; // Thêm Link
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Mail, Lock, LogIn } from 'lucide-react'; // Thêm icons
+import { Mail, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 
 function LoginPage() {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // Thêm trạng thái loading
+  const [loading, setLoading] = useState(false);
+  
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
@@ -28,14 +24,9 @@ function LoginPage() {
 
     try {
       const response = await axiosClient.post('/api/auth/login', formData);
-      
-      // Lưu token và user vào Context/Session
       login(response.data.token, response.data.user);
-
-      // Chuyển hướng về trang chủ
       navigate('/');
     } catch (err) {
-      console.error('Lỗi đăng nhập:', err.response?.data?.error);
       setError(err.response?.data?.error || 'Email hoặc mật khẩu không chính xác.');
     } finally {
       setLoading(false);
@@ -57,7 +48,7 @@ function LoginPage() {
 
         {/* Hiển thị lỗi */}
         {error && (
-          <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg animate-shake">
+          <div className="p-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
             ⚠️ {error}
           </div>
         )}
@@ -85,26 +76,41 @@ function LoginPage() {
           </div>
 
           {/* Trường Password */}
-          <div>
-            <div className="flex justify-between mb-1">
-              <label className="text-sm font-semibold text-gray-700">Mật khẩu</label>
-              <Link to="/forgot-password" size={18} className="text-xs text-indigo-600 hover:underline font-medium">
-                Quên mật khẩu?
-              </Link>
-            </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-semibold text-gray-700">
+              Mật khẩu
+            </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Lock size={18} />
               </span>
               <input
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
               />
+              {/* Nút con mắt */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-indigo-600 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            
+            {/* Nút Quên mật khẩu nằm dưới ô nhập */}
+            <div className="flex justify-end pt-1">
+              <Link 
+                to="/forgot-password" 
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                Quên mật khẩu?
+              </Link>
             </div>
           </div>
 

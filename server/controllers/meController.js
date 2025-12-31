@@ -111,21 +111,38 @@ exports.changePassword = async (req, res) => {
     const userId = req.user.userId;
     const { currentPassword, newPassword } = req.body;
 
+    // 1. Kiểm tra độ dài mật khẩu mới ở BE (Security Layer 2)
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 8 ký tự' });
+    }
+
+    // 2. Lấy dữ liệu user
     const { rows } = await db.query("SELECT password_hash FROM users WHERE id = $1", [userId]);
-    if (rows.length === 0) return res.status(404).json({ error: 'User không tồn tại' });
+    if (rows.length === 0) return res.status(404).json({ error: 'Người dùng không tồn tại' });
 
+    // 3. So sánh mật khẩu cũ
     const isMatch = await bcrypt.compare(currentPassword, rows[0].password_hash);
-    if (!isMatch) return res.status(400).json({ error: 'Mật khẩu hiện tại không đúng' });
+    if (!isMatch) return res.status(400).json({ error: 'Mật khẩu hiện tại không chính xác' });
 
+    // 4. Kiểm tra mật khẩu mới có trùng mật khẩu cũ không
+    const isSameAsOld = await bcrypt.compare(newPassword, rows[0].password_hash);
+    if (isSameAsOld) {
+      return res.status(400).json({ error: 'Mật khẩu mới không được giống mật khẩu cũ' });
+    }
+
+    // 5. Hash mật khẩu mới và cập nhật
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(newPassword, salt);
 
     await db.query("UPDATE users SET password_hash = $1 WHERE id = $2", [hash, userId]);
     
+    // 6. Ghi log (Không ghi mật khẩu vào log)
+    console.log(`User ${userId} changed password successfully at ${new Date().toISOString()}`);
+
     res.json({ message: 'Đổi mật khẩu thành công' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Lỗi server" });
+    console.error("Change Password Error:", err.message);
+    res.status(500).json({ error: "Đã có lỗi xảy ra trên hệ thống" });
   }
 };
 

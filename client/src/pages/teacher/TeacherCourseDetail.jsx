@@ -3,18 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 import LectureManager from '../../components/teacher/LectureManager';
 import TeacherStats from '../../components/teacher/TeacherStats';
+import EnrollmentManager from '../../components/teacher/EnrollmentManager';
 import CustomModal from '../../components/CustomModal';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { Video } from 'lucide-react';
+import { Video, Settings, BookOpen, BarChart3, Users } from 'lucide-react';
 
 function TeacherCourseDetail() {
   const { id } = useParams();
-  const navigate = useNavigate(); // Khởi tạo useNavigate ở đây
+  const navigate = useNavigate();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  // State quản lý Tabs: 'content' hoặc 'stats'
   const [activeTab, setActiveTab] = useState('content'); 
 
   const [formData, setFormData] = useState({
@@ -23,7 +22,6 @@ function TeacherCourseDetail() {
     is_enrollment_open: false
   });
 
-  // State Modal
   const [modal, setModal] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: () => {} });
   const closeModal = () => setModal({ ...modal, isOpen: false });
   const showAlert = (title, message) => setModal({ isOpen: true, type: 'alert', title, message, onConfirm: () => {} });
@@ -31,11 +29,7 @@ function TeacherCourseDetail() {
   const fetchCourse = async () => {
     try {
       setLoading(true);
-      const token = sessionStorage.getItem('token');
-      const response = await axiosClient.get(`/api/courses/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      // Lưu ý: Sửa lại để lấy data trực tiếp (do backend cũ có thể bọc trong key 'course')
+      const response = await axiosClient.get(`/api/courses/${id}`);
       const courseData = response.data.course || response.data; 
       
       setCourse(courseData);
@@ -53,50 +47,21 @@ function TeacherCourseDetail() {
   };
 
   useEffect(() => {
-    fetchCourse();
+    if (id) fetchCourse();
   }, [id]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const token = sessionStorage.getItem('token');
-      await axiosClient.patch(`/api/courses/${id}`, formData, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axiosClient.patch(`/api/courses/${id}`, formData);
       showAlert('Thành công', 'Cập nhật thông tin khóa học thành công!');
       fetchCourse();
     } catch (err) {
-      console.error(err);
       showAlert('Thất bại', 'Có lỗi xảy ra khi cập nhật.');
     }
   };
 
-  const handleRequestReview = async () => {
-    setModal({
-      isOpen: true,
-      type: 'confirm',
-      title: 'Gửi yêu cầu duyệt',
-      message: 'Bạn có chắc muốn gửi yêu cầu duyệt? Khóa học sẽ chuyển sang trạng thái CHỜ DUYỆT.',
-      onConfirm: async () => {
-        try {
-          const token = sessionStorage.getItem('token');
-          await axiosClient.post(
-            `/api/courses/${id}/request-review`, {},
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          showAlert('Thành công', 'Đã gửi yêu cầu duyệt!');
-          fetchCourse();
-        } catch (err) {
-          console.error(err);
-          showAlert('Lỗi', err.response?.data?.error || 'Lỗi khi gửi yêu cầu.');
-        }
-      }
-    });
-  };
-
-  // --- HÀM MỚI: BẮT ĐẦU LIVE STREAM ---
   const handleStartLive = () => {
-    // Chuyển hướng đến trang Video Call, dùng Course ID làm Room ID
     navigate(`/video-call/${id}`);
   };
 
@@ -104,125 +69,86 @@ function TeacherCourseDetail() {
   if (!course) return <div className="p-8 text-center">Không tìm thấy khóa học.</div>;
 
   return (
-    <div className="container p-8 mx-auto">
+    <div className="container p-8 mx-auto max-w-7xl">
       <CustomModal {...modal} onClose={closeModal} />
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-8">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
-          <p className="text-gray-500">Mã: {course.code}</p>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight">{course.title}</h1>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Mã: {course.code}</span>
+            <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-tighter shadow-sm
+              ${course.status === 'APPROVED' ? 'bg-green-100 text-green-700 border border-green-200' : 
+                course.status === 'PENDING_REVIEW' ? 'bg-amber-100 text-amber-700 border border-amber-200' : 
+                'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+              {course.status === 'APPROVED' ? '● Đã duyệt' : course.status === 'PENDING_REVIEW' ? '○ Chờ duyệt' : 'Draft'}
+            </span>
+          </div>
         </div>
         
-        <div className="flex items-center space-x-3">
-          {/* NÚT BẮT ĐẦU LIVESTREAM (NỔI BẬT) */}
-          <button 
-            onClick={handleStartLive} 
-            className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700 font-bold shadow-lg shadow-red-200 flex items-center gap-2 transition transform hover:scale-[1.02]"
-          >
-            <Video size={20} /> Bắt đầu Livestream
-          </button>
-          {/* ---------------------------------- */}
-          
-          <span className={`px-3 py-1 text-sm font-bold rounded-full 
-            ${course.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 
-              course.status === 'PENDING_REVIEW' ? 'bg-orange-100 text-orange-800' : 
-              'bg-gray-100 text-gray-800'}`}>
-            {course.status === 'APPROVED' ? 'Đã duyệt' : 
-             course.status === 'PENDING_REVIEW' ? 'Chờ duyệt' : 'Bản nháp'}
-          </span>
-          
-          {course.status === 'DRAFT' && (
-            <button onClick={handleRequestReview} className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 font-medium shadow">
-              Gửi duyệt
-            </button>
-          )}
-        </div>
+        <button 
+          onClick={handleStartLive} 
+          className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl font-black shadow-lg shadow-red-100 hover:bg-red-700 transition-all active:scale-95"
+        >
+          <Video size={20} /> BẮT ĐẦU LIVESTREAM
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        {/* --- CỘT TRÁI: FORM SỬA THÔNG TIN --- */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 bg-white rounded shadow border border-gray-100">
-            <h2 className="mb-4 text-xl font-bold text-gray-800">Thông tin chung</h2>
-            <form onSubmit={handleUpdate}>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm font-medium text-gray-700">Tên khóa học</label>
-                <input type="text" className="w-full px-3 py-2 border rounded focus:ring-indigo-500 outline-none"
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+        {/* CỘT TRÁI: CÀI ĐẶT CHUNG */}
+        <div className="lg:col-span-1">
+          <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 sticky top-24">
+            <h2 className="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">
+              <Settings size={20} className="text-indigo-600" /> CÀI ĐẶT CHUNG
+            </h2>
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tên khóa học</label>
+                <input type="text" className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                   value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})}
                 />
               </div>
-              <div className="mb-4">
-                <label className="block mb-1 text-sm font-medium text-gray-700">Mô tả</label>
-                <textarea rows="6" className="w-full px-3 py-2 border rounded focus:ring-indigo-500 outline-none"
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Mô tả tóm tắt</label>
+                <textarea rows="6" className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-sm leading-relaxed"
                   value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})}
                 />
               </div>
-              <div className="mb-4">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded"
-                    checked={formData.is_enrollment_open} onChange={(e) => setFormData({...formData, is_enrollment_open: e.target.checked})}
-                  />
-                  <span className="text-sm text-gray-700">Đang mở ghi danh</span>
-                </label>
-              </div>
-              <button type="submit" className="w-full px-4 py-2 text-white bg-indigo-600 rounded hover:bg-indigo-700 font-medium transition">
-                Lưu thay đổi
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded-md"
+                  checked={formData.is_enrollment_open} onChange={(e) => setFormData({...formData, is_enrollment_open: e.target.checked})}
+                />
+                <span className="text-sm font-bold text-gray-700 uppercase tracking-tighter">Cho phép học viên đăng ký</span>
+              </label>
+              <button type="submit" className="w-full py-3 bg-indigo-600 text-white rounded-xl font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-95">
+                LƯU THAY ĐỔI
               </button>
             </form>
           </div>
         </div>
 
-        {/* --- CỘT PHẢI: TABS (NỘI DUNG / THỐNG KÊ) --- */}
+        {/* CỘT PHẢI: QUẢN LÝ NÂNG CAO (TABS) */}
         <div className="lg:col-span-2">
-          
-          {/* THANH TAB NAVIGATION */}
-          <div className="mb-6 border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors
-                  ${activeTab === 'content'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                📝 Nội dung khóa học
-              </button>
-
-              <button
-                onClick={() => setActiveTab('stats')}
-                className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors
-                  ${activeTab === 'stats'
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-              >
-                📊 Thống kê học viên
-              </button>
-            </nav>
+          {/* TAB NAVIGATION */}
+          <div className="flex gap-4 mb-8 bg-gray-100 p-1.5 rounded-2xl w-fit">
+            <button onClick={() => setActiveTab('content')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'content' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              <BookOpen size={16} /> NỘI DUNG
+            </button>
+            <button onClick={() => setActiveTab('stats')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'stats' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              <BarChart3 size={16} /> THỐNG KÊ
+            </button>
+            <button onClick={() => setActiveTab('enrollments')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black transition-all ${activeTab === 'enrollments' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              <Users size={16} /> DUYỆT HỌC VIÊN
+            </button>
           </div>
 
-          {/* KHU VỰC HIỂN THỊ NỘI DUNG TAB */}
-          <div className="bg-white rounded shadow p-6 border border-gray-100 min-h-[500px]">
-            {activeTab === 'content' ? (
-              // TAB 1: QUẢN LÝ BÀI GIẢNG
-              <>
-                <div className="flex justify-between items-center mb-6">
-                   <h2 className="text-xl font-bold text-gray-800">Quản lý bài giảng</h2>
-                   <span className="text-sm text-gray-500 italic">Kéo thả để sắp xếp (Coming soon)</span>
-                </div>
-                <LectureManager courseId={id} />
-              </>
-            ) : (
-              // TAB 2: THỐNG KÊ
-              <>
-                <h2 className="mb-6 text-xl font-bold text-gray-800">Kết quả học tập</h2>
-                <TeacherStats courseId={id} />
-              </>
-            )}
+          {/* TAB CONTENT */}
+          <div className="min-h-[600px] animate-in fade-in duration-500">
+            {activeTab === 'content' && <LectureManager courseId={id} />}
+            {activeTab === 'stats' && <TeacherStats courseId={id} />}
+            {activeTab === 'enrollments' && <EnrollmentManager courseId={id} />}
           </div>
-          
         </div>
       </div>
     </div>

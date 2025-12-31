@@ -48,13 +48,26 @@ function ProfilePage() {
   }, []);
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
+  // 1. Kiểm tra định dạng tệp (Security bổ sung)
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      showAlert('Lỗi', 'Chỉ chấp nhận định dạng ảnh (JPG, PNG, WEBP).', 'error');
+      return;
+    }
+
+    // 2. Kiểm tra dung lượng
     if (file.size > 5 * 1024 * 1024) {
       showAlert('Lỗi', 'Ảnh quá lớn! Vui lòng chọn ảnh dưới 5MB.', 'error');
       return;
     }
+
+    // 3. Tạo Preview tức thì cho người dùng (UX)
+    const previewUrl = URL.createObjectURL(file);
+    const oldAvatar = user.avatar; // Lưu lại để rollback nếu upload lỗi
+    setUser(prev => ({ ...prev, avatar: previewUrl }));
 
     const formData = new FormData();
     formData.append('avatar', file);
@@ -65,20 +78,26 @@ function ProfilePage() {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      // Cập nhật state với URL mới từ Backend (secure_url từ Cloudinary)
       setUser(prev => ({ ...prev, avatar: res.data.avatar }));
       showAlert('Thành công', 'Đã cập nhật ảnh đại diện!', 'success');
-      e.target.value = null; 
     } catch (err) {
-      console.error(err);
-      showAlert('Lỗi', 'Không thể upload ảnh.', 'error');
+      // Rollback ảnh cũ nếu upload thất bại
+      setUser(prev => ({ ...prev, avatar: oldAvatar }));
+      showAlert('Lỗi', 'Không thể upload ảnh lên máy chủ.', 'error');
     } finally {
       setIsUploadingAvatar(false);
+      URL.revokeObjectURL(previewUrl); // Giải phóng bộ nhớ
     }
   };
 
   const handleUpdateInfo = async (e) => {
     e.preventDefault();
+    const cleanName = fullName.trim();
+  
+  if (cleanName.length < 2) {
+    showAlert('Lỗi', 'Tên quá ngắn, vui lòng nhập lại.', 'error');
+    return;
+  }
     try {
       await axiosClient.patch('/api/me/info', { full_name: fullName });
       showAlert('Thành công', 'Đã cập nhật thông tin cá nhân.', 'success');

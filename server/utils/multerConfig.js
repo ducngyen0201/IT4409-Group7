@@ -45,8 +45,14 @@ const storage = new CloudinaryStorage({
 
 // 2. Bộ lọc (Vẫn có thể giữ để giới hạn loại file nếu cần)
 const fileFilter = (req, file, cb) => {
-  // Cho phép tất cả hoặc chỉ định loại file cụ thể
-  cb(null, true); 
+  const allowedExtensions = ['.pdf', '.doc', '.docx', '.mp4'];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (allowedExtensions.includes(ext)) {
+    cb(null, true); // Chấp nhận file, cho phép tải lên Cloudinary
+  } else {
+    cb(new Error('Định dạng file không được hỗ trợ!'), false); // Chặn ngay lập tức
+  }
 };
 
 // 3. Xuất middleware

@@ -60,8 +60,8 @@ function VideoCallPage() {
           showMyCameraToggleButton: true,
           showMyMicrophoneToggleButton: true,
           showAudioVideoSettingsButton: true,
-          turnOnCameraWhenJoining: true,     // Tự động bật cam khi vào
-          turnOnMicrophoneWhenJoining: true, // Tự động bật mic khi vào
+          turnOnCameraWhenJoining: true,
+          turnOnMicrophoneWhenJoining: true, 
           sharedLinks: [
             {
               name: 'Link tham gia',

@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 5000;
 
 // ----- 2. CẤU HÌNH MIDDLEWARE -----
 const allowedOrigins = [
-  "ducngyen.id.vn",
+  "http://localhost:5173",
   process.env.CLIENT_URL
 ];
 

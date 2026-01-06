@@ -9,20 +9,23 @@ function VideoCallPage() {
   const navigate = useNavigate();
   const { roomId } = useParams();
   
-  // Ref để chứa instance của Zego, giúp dọn dẹp khi rời trang
   const zpRef = useRef(null);
   const containerRef = useRef(null);
 
   useEffect(() => {
-    // Nếu chưa có user hoặc container chưa sẵn sàng thì không chạy
     if (!user || !containerRef.current) return;
 
     const myMeeting = async () => {
       try {
-        const appID = import.meta.env.VITE_ZEGO_APP_ID; 
+        // --- SỬA LỖI TẠI ĐÂY: Ép kiểu Number ---
+        const appID = Number(import.meta.env.VITE_ZEGO_APP_ID); 
         const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
 
-        // Đảm bảo roomId và userId là chuỗi hợp lệ (không dấu, không ký tự đặc biệt)
+        if (!appID) {
+          console.error("AppID không hợp lệ hoặc chưa được thiết lập trong .env");
+          return;
+        }
+
         const cleanRoomId = roomId.replace(/[^a-zA-Z0-9_]/g, '');
         const userId = user.id ? user.id.toString() : Math.random().toString(36).substring(7);
         const userName = user.full_name || "User_" + userId;
@@ -36,8 +39,15 @@ function VideoCallPage() {
           userName
         );
 
-        // 2. Khởi tạo instance và lưu vào Ref
+        // 2. Khởi tạo instance
         const zp = ZegoUIKitPrebuilt.create(kitToken);
+        
+        // --- KIỂM TRA AN TOÀN ---
+        if (!zp) {
+          console.error("Không thể tạo đối tượng Zego. Kiểm tra lại AppID và Secret.");
+          return;
+        }
+        
         zpRef.current = zp;
 
         // 3. Tham gia phòng
@@ -50,6 +60,8 @@ function VideoCallPage() {
           showMyCameraToggleButton: true,
           showMyMicrophoneToggleButton: true,
           showAudioVideoSettingsButton: true,
+          turnOnCameraWhenJoining: true,     // Tự động bật cam khi vào
+          turnOnMicrophoneWhenJoining: true, // Tự động bật mic khi vào
           sharedLinks: [
             {
               name: 'Link tham gia',
@@ -67,34 +79,26 @@ function VideoCallPage() {
 
     myMeeting();
 
-    // --- CLEANUP KHI RỜI TRANG ---
     return () => {
       if (zpRef.current) {
-        // Phương thức chính thống để đóng kết nối và tắt Cam/Mic
         zpRef.current.destroy();
         zpRef.current = null;
-        console.log("Đã đóng kết nối Video Call và giải phóng phần cứng.");
       }
     };
   }, [roomId, user, navigate]);
 
-  if (!user) return <div className="pt-20 text-center">Vui lòng đăng nhập để tham gia...</div>;
+  if (!user) return <div className="pt-20 text-center font-bold">Vui lòng đăng nhập...</div>;
 
   return (
     <div className="w-full h-screen bg-gray-900 relative">
-      {/* Nút thoát nhanh */}
       <button 
         onClick={() => navigate(`/course/${roomId}`)}
         className="absolute top-4 left-4 z-[999] bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition flex items-center gap-2 shadow-lg font-bold"
       >
-        <ArrowLeft size={18} /> Rời khỏi cuộc họp
+        <ArrowLeft size={18} /> Thoát phòng
       </button>
 
-      {/* Container hiển thị video */}
-      <div
-        className="w-full h-full"
-        ref={containerRef}
-      ></div>
+      <div className="w-full h-full" ref={containerRef}></div>
     </div>
   );
 }

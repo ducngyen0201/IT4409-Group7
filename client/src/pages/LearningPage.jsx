@@ -4,12 +4,12 @@ import axiosClient from '../api/axiosClient';
 import LoadingSpinner from '../components/LoadingSpinner';
 import StudentQuizView from '../components/student/StudentQuizView';
 import DiscussionSection from '../components/learning/DiscussionSection';
-import { Video } from 'lucide-react';
+import { Video, FileText, Download, ChevronLeft, Layout } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 
 function LearningPage() {
   const { user } = useContext(AuthContext);
-  const isTeacher = user.role === 'TEACHER';
+  const isTeacher = user?.role === 'TEACHER';
   const { id: courseId } = useParams();
   const navigate = useNavigate();
 
@@ -21,228 +21,141 @@ function LearningPage() {
   const [loading, setLoading] = useState(true);
   const [lastSavedProgress, setLastSavedProgress] = useState(0);
 
-  // 1. Fetch dữ liệu bài giảng khi vào trang
   useEffect(() => {
     const fetchLectures = async () => {
       try {
         const res = await axiosClient.get(`/api/courses/${courseId}/lectures`);
-        const data = res.data;
-        setLectures(data);
-
-        // Tự động chọn bài giảng và tài liệu đầu tiên
-        if (data.length > 0) {
-          const firstLec = data[0];
+        setLectures(res.data);
+        if (res.data.length > 0) {
+          const firstLec = res.data[0];
           setCurrentLecture(firstLec);
-          if (firstLec.materials && firstLec.materials.length > 0) {
-            setCurrentMaterial(firstLec.materials[0]);
-          }
+          if (firstLec.materials?.length > 0) setCurrentMaterial(firstLec.materials[0]);
         }
-      } catch (err) {
-        console.error("Lỗi fetch dữ liệu học tập:", err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error("Lỗi tải dữ liệu:", err); }
+      finally { setLoading(false); }
     };
     if (courseId) fetchLectures();
   }, [courseId]);
 
-  // 2. Xử lý các sự kiện Click
   const handleLectureClick = (lec) => {
     setCurrentLecture(lec);
     setViewingQuizId(null);
-    if (lec.materials && lec.materials.length > 0) {
-      setCurrentMaterial(lec.materials[0]);
-    } else {
-      setCurrentMaterial(null);
-    }
+    setCurrentMaterial(lec.materials?.length > 0 ? lec.materials[0] : null);
   };
 
-  const handleMaterialClick = (material) => {
-    setCurrentMaterial(material);
-    setViewingQuizId(null);
-  };
-
-  const handleQuizClick = (quizId) => {
-    setViewingQuizId(quizId);
-    setCurrentMaterial(null);
-  };
-  
-  const handleJoinLive = () => {
-    navigate(`/video-call/${courseId}`);
-  };
-
-  // 3. Logic lưu tiến độ học tập (Progress)
   const updateProgressAPI = async (percent) => {
-    if (isTeacher) return;
-    if (!currentLecture) return;
+    if (isTeacher || !currentLecture) return;
     try {
-      await axiosClient.post(`/api/lectures/${currentLecture.id}/progress`, {
-        progress_percent: percent
-      });
-      // Nếu hoàn thành 100%, cập nhật icon tích xanh ở danh sách bên phải
+      await axiosClient.post(`/api/lectures/${currentLecture.id}/progress`, { progress_percent: percent });
       if (percent >= 100) {
-        setLectures(prev => prev.map(lec => 
-          lec.id === currentLecture.id ? { ...lec, is_completed: true } : lec
-        ));
+        setLectures(prev => prev.map(lec => lec.id === currentLecture.id ? { ...lec, is_completed: true } : lec));
       }
-    } catch (err) {
-      console.error("Không thể lưu tiến độ:", err);
-    }
+    } catch (err) { console.error("Lỗi lưu tiến độ:", err); }
   };
 
   const handleTimeUpdate = (e) => {
-    const video = e.target;
-    const percent = Math.floor((video.currentTime / video.duration) * 100);
-    // Lưu mỗi khi tăng thêm 5% để tối ưu hiệu năng
+    const percent = Math.floor((e.target.currentTime / e.target.duration) * 100);
     if (percent - lastSavedProgress >= 5) {
       setLastSavedProgress(percent);
       updateProgressAPI(percent);
     }
-  }; 
-
-  const handleVideoEnded = () => {
-    updateProgressAPI(100);
   };
 
   if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-64px)] overflow-hidden bg-gray-900">
+    <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-64px)] overflow-hidden bg-[#0f172a]">
       
-      {/* --- CỘT TRÁI: KHUNG XEM VIDEO / LÀM QUIZ --- */}
-      <div className="flex-1 flex flex-col min-w-0 bg-black relative shadow-inner">
+      <div className="flex-1 flex flex-col min-w-0 bg-black relative">
         {viewingQuizId ? (
           <div className="bg-white h-full overflow-y-auto">
             <StudentQuizView quizId={viewingQuizId} onBack={() => setViewingQuizId(null)} />
           </div>
         ) : currentMaterial ? (
-          <div className="flex-1 flex items-center justify-center bg-black h-full">
-            <video 
-              src={currentMaterial.storage_key} 
-              controls 
-              className="max-w-full max-h-full"
-              onTimeUpdate={handleTimeUpdate}
-              onEnded={handleVideoEnded}
-              key={currentMaterial.storage_key}
-            >
-              Trình duyệt không hỗ trợ xem video.
-            </video>
+          <div className="flex-1 flex items-center justify-center h-full">
+            {currentMaterial.type === 'VIDEO' ? (
+              <video 
+                src={currentMaterial.storage_key} 
+                controls 
+                className="max-w-full max-h-full"
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={() => updateProgressAPI(100)}
+                key={currentMaterial.storage_key}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-10 text-center gap-6">
+                <div className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center shadow-2xl">
+                    <FileText size={48} className="text-indigo-400" />
+                </div>
+                <div className="space-y-2">
+                    <h2 className="text-xl font-bold text-white tracking-tight">{currentMaterial.title}</h2>
+                    <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Tài liệu học tập</p>
+                </div>
+                <a 
+                  href={currentMaterial.storage_key} 
+                  target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 px-8 py-3 bg-indigo-600 text-white rounded-full font-black text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
+                >
+                  <Download size={18} /> TẢI XUỐNG TÀI LIỆU
+                </a>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
-            <div className="text-6xl opacity-20">📺</div>
-            <p className="italic">Vui lòng chọn bài giảng để bắt đầu học</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-600 gap-3">
+            <Layout className="w-12 h-12 opacity-20" />
+            <p className="text-sm italic font-medium">Chọn một bài học để bắt đầu</p>
           </div>
         )}
       </div>
 
-      {/* --- CỘT PHẢI: NAVIGATION LỚP HỌC --- */}
-      <div className="w-full lg:w-96 bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-xl">
-        
-        {/* KHU VỰC ĐIỀU KHIỂN RIÊNG CHO GIÁO VIÊN */}
+      <div className="w-full lg:w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0">
         {isTeacher && (
           <div className="p-3 border-b bg-indigo-50/50">
-            <button 
-              onClick={() => navigate(`/manage/courses/${courseId}`)}
-              className="w-full py-2.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-            >
-              ⚙️ QUẢN LÝ NỘI DUNG KHÓA HỌC
-            </button>
+            <button onClick={() => navigate(`/manage/courses/${courseId}`)} className="w-full py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-black hover:bg-indigo-700 transition-colors uppercase tracking-widest">⚙️ Quản lý nội dung</button>
           </div>
         )}
 
-        {/* NÚT VÀO LỚP LIVE */}
         <div className="p-3 border-b border-gray-100">
-          <button
-            onClick={handleJoinLive}
-            className="w-full py-2.5 bg-red-600 text-white font-bold rounded-lg shadow-md hover:bg-red-700 flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse"
-          >
-            <Video size={18} /> VÀO PHÒNG HỌC LIVE
+          <button onClick={() => navigate(`/video-call/${courseId}`)} className="w-full py-2.5 bg-red-600 text-white text-[10px] font-black rounded-lg shadow-lg shadow-red-100 hover:bg-red-700 flex items-center justify-center gap-2 transition-all active:scale-95 animate-pulse uppercase tracking-widest">
+            <Video size={14} /> Vào lớp LIVE
           </button>
         </div>
 
-        {/* THANH TABS NAVIGATION */}
-        <div className="flex border-b text-sm font-bold text-gray-500 bg-gray-50">
-          <button 
-            className={`flex-1 py-4 transition-all ${activeTab === 'lectures' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`}
-            onClick={() => setActiveTab('lectures')}
-          >
-            Nội dung bài học
-          </button>
-          <button 
-            className={`flex-1 py-4 transition-all ${activeTab === 'discussion' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`}
-            onClick={() => setActiveTab('discussion')}
-            disabled={!currentLecture}
-          >
-            Thảo luận lớp
-          </button>
+        <div className="flex border-b text-[11px] font-black uppercase tracking-tighter text-gray-500 bg-gray-50">
+          <button className={`flex-1 py-3 transition-all ${activeTab === 'lectures' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`} onClick={() => setActiveTab('lectures')}>Bài học</button>
+          <button className={`flex-1 py-3 transition-all ${activeTab === 'discussion' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'hover:bg-gray-100'}`} onClick={() => setActiveTab('discussion')}>Thảo luận</button>
         </div>
 
-        {/* NỘI DUNG TƯƠNG ỨNG VỚI TAB ĐANG CHỌN */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto">
           {activeTab === 'lectures' ? (
-            // HIỂN THỊ DANH SÁCH BÀI GIẢNG
-            lectures.map((lec, idx) => {
-              const isActive = currentLecture?.id === lec.id;
-              return (
-                <div key={lec.id} className="border-b border-gray-50">
-                  <div 
-                    onClick={() => handleLectureClick(lec)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center
-                      ${isActive ? 'bg-indigo-50/40 border-l-4 border-l-indigo-600' : ''}`}
-                  >
-                    <div className="flex gap-3 items-center">
-                      <div className="flex flex-col items-center min-w-[20px]">
-                        <span className="text-[10px] text-gray-400 font-bold">{idx + 1}</span>
-                        {lec.is_completed && <span className="text-green-500 font-bold text-sm">✓</span>}
-                      </div>
-                      <div className={`text-sm ${isActive ? 'font-bold text-indigo-900' : 'font-medium text-gray-700'}`}>
-                        {lec.title}
-                      </div>
-                    </div>
-                    <span className="text-gray-400 text-[10px]">{isActive ? '▼' : '▶'}</span>
+            lectures.map((lec, idx) => (
+              <div key={lec.id} className="border-b border-gray-50">
+                <div onClick={() => handleLectureClick(lec)} className={`p-3 cursor-pointer hover:bg-gray-50 transition flex justify-between items-center ${currentLecture?.id === lec.id ? 'bg-indigo-50/40 border-l-4 border-l-indigo-600' : ''}`}>
+                  <div className="flex gap-2 items-center overflow-hidden">
+                    <span className="text-[10px] text-gray-400 font-bold min-w-[15px]">{idx + 1}</span>
+                    <span className={`text-[11px] truncate ${currentLecture?.id === lec.id ? 'font-black text-indigo-900' : 'font-bold text-gray-600'}`}>{lec.title}</span>
                   </div>
-
-                  {isActive && (
-                    <div className="bg-gray-50/30 pb-2">
-                      {/* Danh sách Materials */}
-                      {lec.materials?.map((mat) => (
-                        <div 
-                          key={mat.id}
-                          onClick={(e) => { e.stopPropagation(); handleMaterialClick(mat); }}
-                          className={`pl-12 pr-4 py-2 text-xs cursor-pointer flex items-center gap-2 hover:text-indigo-600
-                            ${currentMaterial?.id === mat.id && !viewingQuizId ? 'text-indigo-700 font-bold bg-indigo-50' : 'text-gray-500'}`}
-                        >
-                          <span>{mat.type === 'VIDEO' ? '🎥' : '📄'}</span>
-                          <span className="truncate">{mat.title}</span>
-                        </div>
-                      ))}
-                      {/* Danh sách Quizzes */}
-                      {lec.quizzes?.map((quiz) => (
-                        <div 
-                          key={quiz.id}
-                          onClick={(e) => { e.stopPropagation(); handleQuizClick(quiz.id); }}
-                          className={`pl-12 pr-4 py-2 text-xs cursor-pointer flex items-center gap-2 hover:text-purple-600
-                            ${viewingQuizId === quiz.id ? 'text-purple-700 font-bold bg-purple-50' : 'text-gray-500'}`}
-                        >
-                          <span>📝</span>
-                          <span className="truncate">{quiz.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {lec.is_completed && <CheckCircle className="w-3 h-3 text-green-500 shrink-0" />}
                 </div>
-              );
-            })
+                {currentLecture?.id === lec.id && (
+                  <div className="bg-gray-50/30 pb-1">
+                    {lec.materials?.map(mat => (
+                      <div key={mat.id} onClick={(e) => { e.stopPropagation(); setCurrentMaterial(mat); setViewingQuizId(null); }} className={`pl-8 pr-3 py-1.5 text-[10px] cursor-pointer flex items-center gap-2 hover:text-indigo-600 ${currentMaterial?.id === mat.id && !viewingQuizId ? 'text-indigo-700 font-black bg-indigo-50' : 'text-gray-500 font-bold'}`}>
+                        <span>{mat.type === 'VIDEO' ? '🎥' : '📄'}</span><span className="truncate">{mat.title}</span>
+                      </div>
+                    ))}
+                    {lec.quizzes?.map(quiz => (
+                      <div key={quiz.id} onClick={(e) => { e.stopPropagation(); setViewingQuizId(quiz.id); setCurrentMaterial(null); }} className={`pl-8 pr-3 py-1.5 text-[10px] cursor-pointer flex items-center gap-2 hover:text-purple-600 ${viewingQuizId === quiz.id ? 'text-purple-700 font-black bg-purple-50' : 'text-gray-500 font-bold'}`}>
+                        <span>📝</span><span className="truncate">{quiz.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
           ) : (
-            // HIỂN THỊ PHẦN THẢO LUẬN
-            currentLecture && (
-              <DiscussionSection 
-                lectureId={currentLecture.id} 
-                lectureTitle={currentLecture.title}
-                isTeacher={isTeacher} // Truyền quyền giáo viên vào đây
-              />
-            )
+            currentLecture && <DiscussionSection lectureId={currentLecture.id} lectureTitle={currentLecture.title} isTeacher={isTeacher} />
           )}
         </div>
       </div>

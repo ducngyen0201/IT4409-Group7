@@ -95,6 +95,7 @@ exports.updateQuiz = async (req, res) => {
     const userId = req.user.userId;
     const { title, time_limit_sec, attempts_allowed, grading_policy, due_at, shuffle_questions } = req.body;
 
+    const cleanDueAt = due_at === "" ? null : due_at;
     // Check quyền sở hữu (Join quizzes -> lectures -> courses -> instructors)
     const checkOwner = await db.query(
       `SELECT q.id FROM quizzes q
@@ -108,14 +109,15 @@ exports.updateQuiz = async (req, res) => {
     // Update động
     const result = await db.query(
       `UPDATE quizzes SET 
-         title = COALESCE($1, title),
-         time_limit_sec = COALESCE($2, time_limit_sec),
-         attempts_allowed = COALESCE($3, attempts_allowed),
-         grading_policy = COALESCE($4, grading_policy),
-         due_at = COALESCE($5, due_at),
-         shuffle_questions = COALESCE($6, shuffle_questions)
-       WHERE id = $7 RETURNING *`,
-      [title, time_limit_sec, attempts_allowed, grading_policy, due_at, shuffle_questions, quizId]
+          title = COALESCE($1, title),
+          time_limit_sec = COALESCE($2, time_limit_sec),
+          attempts_allowed = COALESCE($3, attempts_allowed),
+          grading_policy = COALESCE($4, grading_policy),
+          due_at = COALESCE($5, due_at),
+          shuffle_questions = COALESCE($6, shuffle_questions)
+        WHERE id = $7 RETURNING *`,
+      [title, time_limit_sec, attempts_allowed, grading_policy, cleanDueAt, shuffle_questions, quizId]
+      // Truyền cleanDueAt vào thay vì due_at trực tiếp
     );
 
     res.status(200).json(result.rows[0]);

@@ -7,138 +7,94 @@ import { ArrowLeft } from 'lucide-react';
 function VideoCallPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  
-  // Lấy Room ID từ URL (sẽ là Course ID)
   const { roomId } = useParams();
-  const activeRoomId = roomId;
-
-  // Ref để lưu trữ Stream cục bộ (cần cho việc cleanup thủ công nếu Zego không tự tắt)
-  const localStreamRef = useRef(null); 
   
-  // Hàm tạo ID ngẫu nhiên (chỉ dùng nếu user không tồn tại)
-  function randomID(len) {
-    let result = '';
-    var chars = '12345qwertyuiopasdfgh67890jklmnbvcxzMNBVCZXASDQWERTYHGFUIOLKJP',
-      maxPos = chars.length,
-      i;
-    len = len || 5;
-    for (i = 0; i < len; i++) {
-      result += chars.charAt(Math.floor(Math.random() * maxPos));
-    }
-    return result;
-  }
+  // Ref để chứa instance của Zego, giúp dọn dẹp khi rời trang
+  const zpRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // --- HÀM KHỞI TẠO VÀ THAM GIA PHÒNG (ZegoCloud) ---
-  const myMeeting = async (element) => {
-    // 1. CẤU HÌNH APP ID (THAY THẾ BẰNG THÔNG TIN CỦA BẠN)
-    const appID = 1637996395; // <-- Thay bằng AppID thật của bạn
-    const serverSecret = "06a7751939105436340662660d210517"; // <-- Thay bằng ServerSecret thật của bạn
-    
-    // 2. Tạo Kit Token (Xác thực người dùng và phòng)
-    const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-      appID,
-      serverSecret,
-      activeRoomId,
-      user?.id ? user.id.toString() : randomID(5), // User ID (Dùng ID thật)
-      user?.full_name || "Người dùng ẩn danh"      // Tên hiển thị
-    );
-
-    // 3. Khởi tạo instance
-    const zp = ZegoUIKitPrebuilt.create(kitToken);
-
-    // 4. Tham gia phòng
-    zp.joinRoom({
-      container: element,
-      
-      // --- CẤU HÌNH GỌI NHÓM (GROUP CALL) ---
-      scenario: {
-        mode: ZegoUIKitPrebuilt.GroupCall,
-      },
-      
-      // Cài đặt giao diện (để có nút tắt/bật Cam/Mic)
-      showScreenSharingButton: true,
-      showMyCameraToggleButton: true,
-      showMyMicrophoneToggleButton: true,
-      showAudioVideoSettingsButton: true,
-      
-      // Tạo link để mời người khác
-      sharedLinks: [
-        {
-          name: 'Link tham gia',
-          url:
-           window.location.protocol + '//' + 
-           window.location.host + window.location.pathname,
-           // Link này có thể copy và gửi cho học viên
-        },
-      ],
-
-      // Xử lý khi rời phòng
-      onLeaveRoom: () => {
-        // Có thể navigate về trang chi tiết khóa học thay vì trang chủ
-        navigate(`/course/${activeRoomId}`);
-      },
-      
-      // Lấy local stream để chuẩn bị cho Cleanup (chỉ áp dụng nếu user chưa tắt cam/mic thủ công)
-      onJoinRoom: (users) => {
-        // Cần truy cập stream của người dùng hiện tại
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-                localStreamRef.current = stream;
-            })
-            .catch(err => {
-                console.warn("Không thể lấy stream để lưu tham chiếu cleanup:", err);
-            });
-      }
-    });
-  };
-
-  // --- LOGIC CLEANUP (TẮT MIC/CAM KHI RỜI TRANG) ---
   useEffect(() => {
-    
-    // Hàm này sẽ chạy khi component unmount (rời khỏi trang /video-call)
-    const cleanupCameraAndMic = () => {
-      // 1. Dọn dẹp Stream đã lưu trữ (nếu có)
-      if (localStreamRef.current) {
-         localStreamRef.current.getTracks().forEach(track => track.stop());
-      }
-      
-      // 2. Phương pháp dự phòng: Tìm và tắt mọi stream đang chạy (Hiệu quả nhất)
-      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then(stream => {
-          stream.getTracks().forEach(track => track.stop());
-          console.log("Cleanup: Đã tắt Camera và Microphone thủ công.");
-        })
-        .catch(err => {
-          console.warn("Cleanup: Không cần tắt thủ công vì đã tắt hoặc quyền bị từ chối.");
+    // Nếu chưa có user hoặc container chưa sẵn sàng thì không chạy
+    if (!user || !containerRef.current) return;
+
+    const myMeeting = async () => {
+      try {
+        const appID = import.meta.env.VITE_ZEGO_APP_ID; 
+        const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
+
+        // Đảm bảo roomId và userId là chuỗi hợp lệ (không dấu, không ký tự đặc biệt)
+        const cleanRoomId = roomId.replace(/[^a-zA-Z0-9_]/g, '');
+        const userId = user.id ? user.id.toString() : Math.random().toString(36).substring(7);
+        const userName = user.full_name || "User_" + userId;
+
+        // 1. Tạo Kit Token
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+          appID,
+          serverSecret,
+          cleanRoomId,
+          userId,
+          userName
+        );
+
+        // 2. Khởi tạo instance và lưu vào Ref
+        const zp = ZegoUIKitPrebuilt.create(kitToken);
+        zpRef.current = zp;
+
+        // 3. Tham gia phòng
+        zp.joinRoom({
+          container: containerRef.current,
+          scenario: {
+            mode: ZegoUIKitPrebuilt.GroupCall,
+          },
+          showScreenSharingButton: true,
+          showMyCameraToggleButton: true,
+          showMyMicrophoneToggleButton: true,
+          showAudioVideoSettingsButton: true,
+          sharedLinks: [
+            {
+              name: 'Link tham gia',
+              url: window.location.origin + window.location.pathname,
+            },
+          ],
+          onLeaveRoom: () => {
+            navigate(`/course/${roomId}`);
+          },
         });
+      } catch (error) {
+        console.error("Lỗi khởi tạo cuộc gọi video:", error);
+      }
     };
-    
-    // Trả về hàm cleanup, nó sẽ chạy khi component unmount
+
+    myMeeting();
+
+    // --- CLEANUP KHI RỜI TRANG ---
     return () => {
-      cleanupCameraAndMic();
+      if (zpRef.current) {
+        // Phương thức chính thống để đóng kết nối và tắt Cam/Mic
+        zpRef.current.destroy();
+        zpRef.current = null;
+        console.log("Đã đóng kết nối Video Call và giải phóng phần cứng.");
+      }
     };
+  }, [roomId, user, navigate]);
 
-  }, [activeRoomId, navigate]);
-
-
-  // Nếu user chưa đăng nhập, không nên render
-  if (!user) return <div className="pt-20 text-center">Đang tải...</div>;
-
+  if (!user) return <div className="pt-20 text-center">Vui lòng đăng nhập để tham gia...</div>;
 
   return (
-    <div className="w-full h-screen bg-gray-100 relative">
-        {/* Nút quay lại */}
-        <button 
-            onClick={() => navigate(`/course/${activeRoomId}`)}
-            className="absolute top-4 left-4 z-50 bg-gray-600/50 text-white p-2 rounded-full hover:bg-gray-800 transition flex items-center gap-1 text-sm"
-        >
-            <ArrowLeft size={16} /> Thoát phòng
-        </button>
+    <div className="w-full h-screen bg-gray-900 relative">
+      {/* Nút thoát nhanh */}
+      <button 
+        onClick={() => navigate(`/course/${roomId}`)}
+        className="absolute top-4 left-4 z-[999] bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition flex items-center gap-2 shadow-lg font-bold"
+      >
+        <ArrowLeft size={18} /> Rời khỏi cuộc họp
+      </button>
 
-        <div
-            className="myCallContainer w-full h-full"
-            ref={myMeeting}
-        ></div>
+      {/* Container hiển thị video */}
+      <div
+        className="w-full h-full"
+        ref={containerRef}
+      ></div>
     </div>
   );
 }

@@ -81,8 +81,6 @@ function Navbar() {
 
     // Nếu path là link Cloudinary hoàn chỉnh (bắt đầu bằng http)
     if (path.startsWith('http')) return path;
-
-    // Nếu là link Local cũ (ví dụ: uploads/avatar.jpg)
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     return `${baseUrl}${cleanPath}`;

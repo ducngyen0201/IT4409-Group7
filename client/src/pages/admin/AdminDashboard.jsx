@@ -125,11 +125,23 @@ function AdminDashboard() {
         </div>
       )}
 
-      {viewingStudentsCourseId && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-gray-900/60 backdrop-blur-md p-6 animate-fade-in">
-          <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-zoom-in">
-             <div className="px-12 py-10 border-b flex justify-between items-center bg-white sticky top-0"><h3 className="text-4xl font-black text-gray-800 tracking-tighter uppercase leading-none">Thống kê học viên</h3><button onClick={() => setViewingStudentsCourseId(null)} className="p-4 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-3xl transition-all active:scale-90 shadow-sm border border-transparent hover:border-red-100"><X className="w-10 h-10" /></button></div>
-             <div className="flex-1 overflow-y-auto p-12 bg-[#fdfdfd]"><TeacherStats courseId={viewingStudentsCourseId} /></div>
+{viewingStudentsCourseId && (
+  <div className="fixed inset-0 z-[130] flex items-center justify-center bg-gray-900/60 backdrop-blur-md p-4 animate-fade-in">
+    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-[90vh] flex flex-col overflow-hidden animate-zoom-in">
+       <div className="px-8 py-6 border-b flex justify-between items-center bg-white sticky top-0 shadow-sm">
+         <h3 className="text-lg md:text-xl font-black text-gray-800 tracking-tight uppercase leading-none">
+           Thống kê học viên
+         </h3>
+         <button 
+           onClick={() => setViewingStudentsCourseId(null)} 
+           className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl transition-all active:scale-90 border border-transparent hover:border-red-100"
+         >
+           <X className="w-8 h-8" />
+         </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-[#fdfdfd]">
+              <TeacherStats courseId={viewingStudentsCourseId} />
+            </div>
           </div>
         </div>
       )}

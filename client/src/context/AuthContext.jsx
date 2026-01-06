@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
     setUser(null);
-    window.location.href = '/login'; // Reset toàn bộ app để bảo mật
+    window.location.href = '/'; // Reset toàn bộ app để bảo mật
   };
 
   // Tránh render App khi chưa kiểm tra xong trạng thái login

@@ -4,7 +4,7 @@ import { X, CheckCircle, AlertCircle, Info, HelpCircle } from 'lucide-react';
 const CustomModal = ({ 
   isOpen, 
   onClose, 
-  type = 'alert', // 'success' | 'error' | 'alert' | 'confirm' | 'prompt'
+  type = 'alert',
   title, 
   message, 
   defaultValue, 

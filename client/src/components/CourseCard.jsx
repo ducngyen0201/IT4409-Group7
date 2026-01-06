@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Eye } from 'lucide-react'; // Thêm icon cho trực quan
+import { Settings, Eye } from 'lucide-react';
 
 const CourseCard = ({ course, isTeacherView = false }) => {
-  // 1. Hàm hiển thị Status Badge (Giữ nguyên logic của bạn)
+  // 1. Hàm hiển thị Status Badge
   const renderStatusBadge = () => {
     if (!isTeacherView || !course.status) return null;
 
@@ -23,7 +23,6 @@ const CourseCard = ({ course, isTeacherView = false }) => {
   };
 
   // 2. SỬA TẠI ĐÂY: Tất cả đều dẫn về trang chi tiết công khai
-  // Khi vào trang này, Component CourseDetailPage sẽ tự nhận diện role và hiện nút "Sửa"
   const detailPath = `/course/${course.id}`;
   
   return (

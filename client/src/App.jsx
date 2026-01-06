@@ -8,7 +8,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CreateCoursePage from './pages/teacher/CreateCoursePage';
 import TeacherCourseDetail from './pages/teacher/TeacherCourseDetail';
 import LearningPage from './pages/LearningPage';
-import MyCoursesPage from './pages/student/MyCoursesPage';
 import TeacherQuizEditor from './pages/teacher/TeacherQuizEditor';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
@@ -85,14 +84,6 @@ function App() {
             element={
               <ProtectedRoute roles={['STUDENT', 'TEACHER', 'ADMIN']}>
                 <LearningPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/my-courses" 
-            element={
-              <ProtectedRoute roles={['STUDENT']}>
-                <MyCoursesPage />
               </ProtectedRoute>
             } 
           />

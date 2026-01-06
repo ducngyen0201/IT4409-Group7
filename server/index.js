@@ -36,7 +36,7 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads')); 
 
 // ----- 3. TẠO ROUTE ĐỂ KIỂM TRA -----
-app.get('/api/test', async (req, res) => {
+app.get('/', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT NOW();');
     res.json({ message: 'Kết nối database thành công!', time: rows[0].now });

@@ -72,7 +72,7 @@ function TeacherCourseDetail() {
         
         {/* NÚT QUAY LẠI */}
         <button 
-          onClick={() => navigate('/course/${id}')} 
+          onClick={() => navigate(`/course/${id}`)} 
           className="flex items-center gap-2 text-gray-400 hover:text-indigo-600 transition-all font-black text-[10px] uppercase tracking-widest group"
         >
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> QUAY LẠI QUẢN LÝ
